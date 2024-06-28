@@ -1,0 +1,16 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiscordButBetter.Server", "DiscordButBetter.Server.csproj", "{1DF63F2B-2FFC-4F3B-8CD7-EA93CCB417CC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1DF63F2B-2FFC-4F3B-8CD7-EA93CCB417CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1DF63F2B-2FFC-4F3B-8CD7-EA93CCB417CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1DF63F2B-2FFC-4F3B-8CD7-EA93CCB417CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1DF63F2B-2FFC-4F3B-8CD7-EA93CCB417CC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
