@@ -3,7 +3,6 @@ WORKDIR /src
 COPY ["DiscordButBetter.Server/DiscordButBetter.Server.csproj", "./"]
 RUN dotnet restore "DiscordButBetter.Server.csproj"
 COPY ["DiscordButBetter.Server/", "."]
-WORKDIR "/src/"
 RUN dotnet publish "DiscordButBetter.Server.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM node:20 AS frontend
