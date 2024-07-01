@@ -17,4 +17,6 @@ public class UserModel
     public List<ConversationModel> Conversations { get; set; }
     public List<ConversationModel> VisibleConversations { get; set; }
     public List<ChatMessageModel> ChatMessages { get; set; }
+    
+    public AuthorizationModel Authorization { get; set; }
 }

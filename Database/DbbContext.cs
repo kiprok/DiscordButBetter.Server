@@ -10,6 +10,7 @@ public class DbbContext : DbContext
     public DbSet<UserModel> Users { get; set; }
     public DbSet<ConversationModel> Conversations { get; set; }
     public DbSet<ChatMessageModel> Messages { get; set; }
+    public DbSet<AuthorizationModel> Authorizations { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
