@@ -15,5 +15,6 @@ public class UserModel
     public List<UserModel> FriendRequests { get; set; }
     
     public List<ConversationModel> Conversations { get; set; }
+    public List<ConversationModel> VisibleConversations { get; set; }
     public List<ChatMessageModel> ChatMessages { get; set; }
 }

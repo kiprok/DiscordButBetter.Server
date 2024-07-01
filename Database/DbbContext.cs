@@ -26,6 +26,20 @@ public class DbbContext : DbContext
             .UsingEntity("FriendRequests",
                 i => i.HasOne(typeof(UserModel)).WithMany().HasForeignKey("RequesterId"),
                 j => j.HasOne(typeof(UserModel)).WithMany().HasForeignKey("RequestedId"));
+        
+        modelBuilder.Entity<UserModel>()
+            .HasMany(u => u.Conversations)
+            .WithMany(c => c.Participants)
+            .UsingEntity("conversationParticipants",
+                i => i.HasOne(typeof(ConversationModel)).WithMany().HasForeignKey("ConversationId"),
+                j => j.HasOne(typeof(UserModel)).WithMany().HasForeignKey("UserId"));
+        
+        modelBuilder.Entity<UserModel>()
+            .HasMany(u => u.VisibleConversations)
+            .WithMany(c => c.ParticipantsVisible)
+            .UsingEntity("conversationParticipantsVisible",
+                i => i.HasOne(typeof(ConversationModel)).WithMany().HasForeignKey("ConversationId"),
+                j => j.HasOne(typeof(UserModel)).WithMany().HasForeignKey("UserId"));
 
     }
 }

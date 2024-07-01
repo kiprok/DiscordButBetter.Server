@@ -7,5 +7,6 @@ public class ConversationModel
     public byte ConversationType { get; set; }
     public string ConversationPicture { get; set; }
     public List<UserModel> Participants { get; set; }
+    public List<UserModel> ParticipantsVisible { get; set; }
     public List<ChatMessageModel> ChatMessages { get; set; }
 }
