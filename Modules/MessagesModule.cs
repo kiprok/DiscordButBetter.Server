@@ -11,7 +11,7 @@ public class MessagesModule : CarterModule
 {
     public MessagesModule() : base("/api/messages")
     {
-        
+        RequireAuthorization();
     }
     
     public override void AddRoutes(IEndpointRouteBuilder app)

@@ -12,6 +12,7 @@ public class ConversationsModule : CarterModule
 {
     public ConversationsModule() : base("/api/conversations")
     {
+        RequireAuthorization();
     }
 
     public override void AddRoutes(IEndpointRouteBuilder app)
