@@ -17,9 +17,8 @@ public class UsersModule : CarterModule
     
     public override void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapGet("/",  (DbbContext db, ClaimsPrincipal user) =>
-        {
-            Console.WriteLine($"user: {user.Claims.First(c => c.Type == "UserId").Value}");
+        app.MapGet("/",  (DbbContext db) =>
+        { 
             var users = db.Users.ToList();
             return Results.Ok(users.Select(u => u.ToUserResponse()));
         });
