@@ -13,7 +13,9 @@ public class UserModel
     public string Biography { get; set; }
     
     public List<UserModel> Friends { get; set; }
-    public List<UserModel> FriendRequests { get; set; }
+    
+    public List<FriendRequestModel> SentFriendRequests { get; set; }
+    public List<FriendRequestModel> ReceivedFriendRequests { get; set; }
     
     public List<ConversationModel> Conversations { get; set; }
     public List<ConversationModel> VisibleConversations { get; set; }

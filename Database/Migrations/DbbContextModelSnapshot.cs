@@ -76,6 +76,27 @@ namespace DiscordButBetter.Server.Database.Migrations
                     b.ToTable("Conversations");
                 });
 
+            modelBuilder.Entity("DiscordButBetter.Server.Database.Models.FriendRequestModel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("ReceiverId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("SenderId")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReceiverId");
+
+                    b.HasIndex("SenderId");
+
+                    b.ToTable("FriendRequests");
+                });
+
             modelBuilder.Entity("DiscordButBetter.Server.Database.Models.SessionModel", b =>
                 {
                     b.Property<Guid>("Id")
@@ -144,21 +165,6 @@ namespace DiscordButBetter.Server.Database.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("FriendRequests", b =>
-                {
-                    b.Property<Guid>("RequestedId")
-                        .HasColumnType("char(36)");
-
-                    b.Property<Guid>("RequesterId")
-                        .HasColumnType("char(36)");
-
-                    b.HasKey("RequestedId", "RequesterId");
-
-                    b.HasIndex("RequesterId");
-
-                    b.ToTable("FriendRequests");
-                });
-
             modelBuilder.Entity("Friends", b =>
                 {
                     b.Property<Guid>("FriendId")
@@ -223,6 +229,25 @@ namespace DiscordButBetter.Server.Database.Migrations
                     b.Navigation("Sender");
                 });
 
+            modelBuilder.Entity("DiscordButBetter.Server.Database.Models.FriendRequestModel", b =>
+                {
+                    b.HasOne("DiscordButBetter.Server.Database.Models.UserModel", "Receiver")
+                        .WithMany("ReceivedFriendRequests")
+                        .HasForeignKey("ReceiverId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DiscordButBetter.Server.Database.Models.UserModel", "Sender")
+                        .WithMany("SentFriendRequests")
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Receiver");
+
+                    b.Navigation("Sender");
+                });
+
             modelBuilder.Entity("DiscordButBetter.Server.Database.Models.SessionModel", b =>
                 {
                     b.HasOne("DiscordButBetter.Server.Database.Models.UserModel", "user")
@@ -232,21 +257,6 @@ namespace DiscordButBetter.Server.Database.Migrations
                         .IsRequired();
 
                     b.Navigation("user");
-                });
-
-            modelBuilder.Entity("FriendRequests", b =>
-                {
-                    b.HasOne("DiscordButBetter.Server.Database.Models.UserModel", null)
-                        .WithMany()
-                        .HasForeignKey("RequestedId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("DiscordButBetter.Server.Database.Models.UserModel", null)
-                        .WithMany()
-                        .HasForeignKey("RequesterId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Friends", b =>
@@ -302,6 +312,10 @@ namespace DiscordButBetter.Server.Database.Migrations
             modelBuilder.Entity("DiscordButBetter.Server.Database.Models.UserModel", b =>
                 {
                     b.Navigation("ChatMessages");
+
+                    b.Navigation("ReceivedFriendRequests");
+
+                    b.Navigation("SentFriendRequests");
 
                     b.Navigation("Sessions");
                 });

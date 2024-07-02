@@ -11,6 +11,7 @@ public class DbbContext : DbContext
     public DbSet<ConversationModel> Conversations { get; set; }
     public DbSet<ChatMessageModel> Messages { get; set; }
     public DbSet<SessionModel> Sessions { get; set; }
+    public DbSet<FriendRequestModel> FriendRequests { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -22,11 +23,14 @@ public class DbbContext : DbContext
                 j => j.HasOne(typeof(UserModel)).WithMany().HasForeignKey("UserId"));
         
         modelBuilder.Entity<UserModel>()
-            .HasMany(u => u.FriendRequests)
-            .WithMany()
-            .UsingEntity("FriendRequests",
-                i => i.HasOne(typeof(UserModel)).WithMany().HasForeignKey("RequesterId"),
-                j => j.HasOne(typeof(UserModel)).WithMany().HasForeignKey("RequestedId"));
+            .HasMany(u => u.SentFriendRequests)
+            .WithOne(r => r.Sender)
+            .HasForeignKey(r => r.SenderId);
+        
+        modelBuilder.Entity<UserModel>()
+            .HasMany(u => u.ReceivedFriendRequests)
+            .WithOne(r => r.Receiver)
+            .HasForeignKey(r => r.ReceiverId);
         
         modelBuilder.Entity<UserModel>()
             .HasMany(u => u.Conversations)

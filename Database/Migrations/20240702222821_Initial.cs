@@ -110,21 +110,22 @@ namespace DiscordButBetter.Server.Database.Migrations
                 name: "FriendRequests",
                 columns: table => new
                 {
-                    RequestedId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    RequesterId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci")
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    SenderId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    ReceiverId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci")
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_FriendRequests", x => new { x.RequestedId, x.RequesterId });
+                    table.PrimaryKey("PK_FriendRequests", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_FriendRequests_Users_RequestedId",
-                        column: x => x.RequestedId,
+                        name: "FK_FriendRequests_Users_ReceiverId",
+                        column: x => x.ReceiverId,
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_FriendRequests_Users_RequesterId",
-                        column: x => x.RequesterId,
+                        name: "FK_FriendRequests_Users_SenderId",
+                        column: x => x.SenderId,
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -195,7 +196,10 @@ namespace DiscordButBetter.Server.Database.Migrations
                     userId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
                     token = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    expiration = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                    IpAddress = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    UserAgent = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
@@ -220,9 +224,14 @@ namespace DiscordButBetter.Server.Database.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_FriendRequests_RequesterId",
+                name: "IX_FriendRequests_ReceiverId",
                 table: "FriendRequests",
-                column: "RequesterId");
+                column: "ReceiverId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FriendRequests_SenderId",
+                table: "FriendRequests",
+                column: "SenderId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Friends_UserId",
