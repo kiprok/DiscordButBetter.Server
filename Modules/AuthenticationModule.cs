@@ -68,9 +68,13 @@ public class AuthenticationModule : CarterModule
 
         app.MapPost("/login", async (
             [FromBody] LoginRequest request, 
-            IUserService userService) =>
+            IUserService userService,
+            HttpContext context) =>
         {
-            var session = await userService.Authenticate(request.Username, request.Password);
+            var ip = context.Connection.RemoteIpAddress?.ToString();
+            var userAgent = context.Request.Headers["User-Agent"].ToString();
+            
+            var session = await userService.Authenticate(request.Username, request.Password, ip ?? "", userAgent);
             if (session == null)
             {
                 return Results.Unauthorized();
@@ -80,9 +84,14 @@ public class AuthenticationModule : CarterModule
         });
         
         app.MapPost("/logout", async (
-            [FromHeader(Name = AuthSchemeOptions.AuthorizationHeaderName)] string token, 
-            IUserService userService) =>
+            IUserService userService,
+            HttpRequest request) =>
         {
+            if (!request.Headers.ContainsKey(AuthSchemeOptions.AuthorizationHeaderName))
+            {
+                return Results.Unauthorized();
+            }
+            var token = request.Headers[AuthSchemeOptions.AuthorizationHeaderName];
             var session = userService.Authenticate(token);
             if (session == null)
             {

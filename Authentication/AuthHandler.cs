@@ -25,7 +25,7 @@ public class AuthHandler : AuthenticationHandler<AuthSchemeOptions>
     {
         
         
-        if (!Request.Cookies.ContainsKey(AuthSchemeOptions.AuthorizationHeaderName))
+        if (!Request.Headers.ContainsKey(AuthSchemeOptions.AuthorizationHeaderName))
         {
             return AuthenticateResult.Fail("Unauthorized");
         }

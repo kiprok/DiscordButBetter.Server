@@ -9,7 +9,7 @@ public interface IUserService
     public string GeneratePasswordHash(string password);
     public bool VerifyPassword(string password, string hash);
     public string GenerateToken();
-    public Task<SessionModel?> Authenticate(string username, string password);
+    public Task<SessionModel?> Authenticate(string username, string password , string ip, string userAgent);
     public SessionModel? Authenticate(string token);
     
     public Task<bool> Logout(string token);
@@ -41,7 +41,7 @@ public class UserService : IUserService
         return Guid.NewGuid().ToString();
     }
     
-    public async Task<SessionModel?> Authenticate(string username, string password)
+    public async Task<SessionModel?> Authenticate(string username, string password, string ip, string userAgent)
     {
         var user = _db.Users.FirstOrDefault(u => u.Username == username);
         if (user == null || !VerifyPassword(password, user.Password))
@@ -53,7 +53,8 @@ public class UserService : IUserService
         {
             userId = user.Id,
             token = GenerateToken(),
-            expiration = DateTime.Now.AddHours(1)
+            IpAddress = ip,
+            UserAgent = userAgent
         };
         
         var cacheEntryOptions = new MemoryCacheEntryOptions()

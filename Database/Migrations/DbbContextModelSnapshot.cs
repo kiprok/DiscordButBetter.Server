@@ -82,8 +82,13 @@ namespace DiscordButBetter.Server.Database.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
-                    b.Property<DateTime>("expiration")
-                        .HasColumnType("datetime(6)");
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("UserAgent")
+                        .IsRequired()
+                        .HasColumnType("longtext");
 
                     b.Property<string>("token")
                         .IsRequired()

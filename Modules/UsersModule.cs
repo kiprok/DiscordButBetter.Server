@@ -1,4 +1,5 @@
-﻿using Carter;
+﻿using System.Security.Claims;
+using Carter;
 using DiscordButBetter.Server.Contracts.Mappers;
 using DiscordButBetter.Server.Database;
 using DiscordButBetter.Server.Database.Models;
@@ -16,8 +17,9 @@ public class UsersModule : CarterModule
     
     public override void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapGet("/",  (DbbContext db) =>
+        app.MapGet("/",  (DbbContext db, ClaimsPrincipal user) =>
         {
+            Console.WriteLine($"user: {user.Claims.First(c => c.Type == "UserId").Value}");
             var users = db.Users.ToList();
             return Results.Ok(users.Select(u => u.ToUserResponse()));
         });
