@@ -5,5 +5,5 @@ namespace DiscordButBetter.Server.Authentication;
 public class AuthSchemeOptions : AuthenticationSchemeOptions
 {
     public const string DefaultScheme = "Basic";
-    public const string AutherizationHeaderName = "Authorization";
+    public const string AuthorizationHeaderName = "Authorization";
 }
