@@ -1,6 +1,7 @@
-using System.Collections;
 using Carter;
+using DiscordButBetter.Server.Authentication;
 using DiscordButBetter.Server.Database;
+using DiscordButBetter.Server.Services;
 using Microsoft.EntityFrameworkCore;
 
 
@@ -11,7 +12,10 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddCarter();
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient();
-
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddAuthentication(AuthSchemeOptions.DefaultScheme)
+    .AddScheme<AuthSchemeOptions, AuthHandler>(AuthSchemeOptions.DefaultScheme, options => { });
+builder.Services.AddAuthorization();
 
 var db_host = Environment.GetEnvironmentVariable("DB_HOST") ?? builder.Configuration["DB_HOST"];
 var db_port = Environment.GetEnvironmentVariable("DB_PORT") ?? builder.Configuration["DB_PORT"];
@@ -28,6 +32,8 @@ builder.Services.AddDbContext<DbbContext>(options =>
 
 var app = builder.Build();
 
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseDefaultFiles();
 app.UseStaticFiles();

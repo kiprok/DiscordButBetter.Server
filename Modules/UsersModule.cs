@@ -6,8 +6,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DiscordButBetter.Server.Modules;
 
-public class UsersModule() : CarterModule("/api/users")
+public class UsersModule : CarterModule
 {
+    public UsersModule() :base("/api/users")
+    {
+        RequireAuthorization();
+    }
+    
+    
     public override void AddRoutes(IEndpointRouteBuilder app)
     {
         app.MapGet("/",  (DbbContext db) =>

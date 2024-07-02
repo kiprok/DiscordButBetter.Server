@@ -2,9 +2,9 @@
 
 namespace DiscordButBetter.Server.Database.Models;
 
-public class AuthorizationModel
+public class SessionModel
 {
-    [Key]
+    public Guid Id { get; set; }
     public Guid userId { get; set; }
     public UserModel user { get; set; }
     public string token { get; set; }

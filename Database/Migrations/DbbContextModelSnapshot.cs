@@ -22,23 +22,6 @@ namespace DiscordButBetter.Server.Database.Migrations
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
-            modelBuilder.Entity("DiscordButBetter.Server.Database.Models.AuthorizationModel", b =>
-                {
-                    b.Property<Guid>("userId")
-                        .HasColumnType("char(36)");
-
-                    b.Property<DateTime>("expiration")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("token")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.HasKey("userId");
-
-                    b.ToTable("Authorizations");
-                });
-
             modelBuilder.Entity("DiscordButBetter.Server.Database.Models.ChatMessageModel", b =>
                 {
                     b.Property<Guid>("Id")
@@ -93,6 +76,29 @@ namespace DiscordButBetter.Server.Database.Migrations
                     b.ToTable("Conversations");
                 });
 
+            modelBuilder.Entity("DiscordButBetter.Server.Database.Models.SessionModel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("expiration")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("token")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid>("userId")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("userId");
+
+                    b.ToTable("Sessions");
+                });
+
             modelBuilder.Entity("DiscordButBetter.Server.Database.Models.UserModel", b =>
                 {
                     b.Property<Guid>("Id")
@@ -105,6 +111,9 @@ namespace DiscordButBetter.Server.Database.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("Online")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Password")
                         .IsRequired()
@@ -190,17 +199,6 @@ namespace DiscordButBetter.Server.Database.Migrations
                     b.ToTable("conversationParticipantsVisible");
                 });
 
-            modelBuilder.Entity("DiscordButBetter.Server.Database.Models.AuthorizationModel", b =>
-                {
-                    b.HasOne("DiscordButBetter.Server.Database.Models.UserModel", "user")
-                        .WithOne("Authorization")
-                        .HasForeignKey("DiscordButBetter.Server.Database.Models.AuthorizationModel", "userId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("user");
-                });
-
             modelBuilder.Entity("DiscordButBetter.Server.Database.Models.ChatMessageModel", b =>
                 {
                     b.HasOne("DiscordButBetter.Server.Database.Models.ConversationModel", "Conversation")
@@ -218,6 +216,17 @@ namespace DiscordButBetter.Server.Database.Migrations
                     b.Navigation("Conversation");
 
                     b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("DiscordButBetter.Server.Database.Models.SessionModel", b =>
+                {
+                    b.HasOne("DiscordButBetter.Server.Database.Models.UserModel", "user")
+                        .WithMany("Sessions")
+                        .HasForeignKey("userId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("user");
                 });
 
             modelBuilder.Entity("FriendRequests", b =>
@@ -287,10 +296,9 @@ namespace DiscordButBetter.Server.Database.Migrations
 
             modelBuilder.Entity("DiscordButBetter.Server.Database.Models.UserModel", b =>
                 {
-                    b.Navigation("Authorization")
-                        .IsRequired();
-
                     b.Navigation("ChatMessages");
+
+                    b.Navigation("Sessions");
                 });
 #pragma warning restore 612, 618
         }
