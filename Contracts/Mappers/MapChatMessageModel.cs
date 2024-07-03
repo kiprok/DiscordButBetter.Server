@@ -1,4 +1,5 @@
-﻿using DiscordButBetter.Server.Contracts.Requests;
+﻿using System.Text.Json.Nodes;
+using DiscordButBetter.Server.Contracts.Requests;
 using DiscordButBetter.Server.Contracts.Responses;
 using DiscordButBetter.Server.Database.Models;
 
@@ -10,37 +11,24 @@ public static class MapChatMessageModel
     {
         return new MessageResponse
         {
-            Id = message.Id,
+            MessageId = message.Id,
             ConversationId = message.ConversationId,
             SenderId = message.SenderId,
             Content = message.Content,
             SentAt = message.SentAt,
-            Metadata = message.Metadata
+            Metadata = JsonNode.Parse(message.Metadata)?.AsObject() ?? new JsonObject() 
         };
     }
     
-    public static ChatMessageModel ToChatMessageModel(this MessageResponse message)
-    {
-        return new ChatMessageModel
-        {
-            Id = message.Id,
-            ConversationId = message.ConversationId,
-            SenderId = message.SenderId,
-            Content = message.Content,
-            SentAt = message.SentAt,
-            Metadata = message.Metadata
-        };
-    }
-    
-    public static ChatMessageModel ToChatMessageModel(this SendMessageRequest request)
+    public static ChatMessageModel ToChatMessageModel(this SendChatMessageRequest request)
     {
         return new ChatMessageModel
         {
             ConversationId = request.ConversationId,
-            SenderId = request.SenderId,
             Content = request.Content,
             SentAt = DateTime.UtcNow,
-            Metadata = request.Metadata
+            Metadata = request.Metadata.ToString()
         };
     }
+    
 }

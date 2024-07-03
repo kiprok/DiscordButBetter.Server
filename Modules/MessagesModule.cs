@@ -1,4 +1,5 @@
-﻿using Carter;
+﻿using System.Security.Claims;
+using Carter;
 using DiscordButBetter.Server.Contracts.Mappers;
 using DiscordButBetter.Server.Contracts.Requests;
 using DiscordButBetter.Server.Database;
@@ -57,17 +58,50 @@ public class MessagesModule : CarterModule
             return Results.Ok(message.ToMessageResponse());
         });
         
-        app.MapPost("/", 
-            async (DbbContext db,[FromBody] SendMessageRequest request) =>
+        app.MapPut("/", 
+            async (DbbContext db,[FromBody] SendChatMessageRequest request, ClaimsPrincipal claim) =>
         {
+            var userId = Guid.Parse(claim.Claims.First().Value);
             var message = request.ToChatMessageModel();
             message.Id = Guid.NewGuid();
+            message.SenderId = userId;
             
             db.Messages.Add(message);
             await db.SaveChangesAsync();
             
             return Results.Ok(message.ToMessageResponse());
         });
-
+        
+        app.MapDelete("/{messageId:guid}", 
+            async (DbbContext db, Guid messageId) =>
+        {
+            var message = db.Messages.FirstOrDefault(m => m.Id == messageId);
+            if (message == null)
+            {
+                return Results.NotFound();
+            }
+            
+            db.Messages.Remove(message);
+            await db.SaveChangesAsync();
+            
+            return Results.Ok();
+        });
+        
+        app.MapPatch("/{messageId:guid}", 
+            async (DbbContext db, Guid messageId, [FromBody] UpdateChatMessageRequest request) =>
+        {
+            var message = db.Messages.FirstOrDefault(m => m.Id == messageId);
+            if (message == null)
+            {
+                return Results.NotFound();
+            }
+            
+            if (request.Content != null) message.Content = request.Content;
+            if (request.Metadata != null) message.Metadata = request.Metadata.ToString();
+            
+            await db.SaveChangesAsync();
+            
+            return Results.Ok(message.ToMessageResponse());
+        });
     }
 }

@@ -20,7 +20,8 @@ public class UsersModule : CarterModule
     
     public override void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapGet("/",  (DbbContext db, ClaimsPrincipal claim) =>
+        app.MapGet("/",  
+            (DbbContext db, ClaimsPrincipal claim) =>
         { 
             var userId = Guid.Parse(claim.Claims.First().Value);
             var user = db.Users.FirstOrDefault(u => u.Id == userId);
@@ -31,7 +32,8 @@ public class UsersModule : CarterModule
             return Results.Ok(user.ToUserResponse());
         });
         
-        app.MapGet("/{id:guid}", (DbbContext db, Guid id) =>
+        app.MapGet("/{id:guid}", 
+            (DbbContext db, Guid id) =>
         {
             var user = db.Users.FirstOrDefault(u => u.Id == id);
             if (user == null)
@@ -42,12 +44,12 @@ public class UsersModule : CarterModule
             return Results.Ok(user.ToUserResponse());
         });
 
-        app.MapPatch("/", async (
+        app.MapPatch("/", 
+            async (
             DbbContext db,
             ClaimsPrincipal claim,
             UpdateUserInfoRequest request,
-            IUserService userService
-            ) =>
+            IUserService userService) =>
         {
             var userId = Guid.Parse(claim.Claims.First().Value);
             var user = db.Users.FirstOrDefault(u => u.Id == userId);
