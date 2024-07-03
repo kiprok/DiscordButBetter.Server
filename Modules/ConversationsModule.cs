@@ -1,4 +1,5 @@
-﻿using Carter;
+﻿using System.Security.Claims;
+using Carter;
 using DiscordButBetter.Server.Contracts.Mappers;
 using DiscordButBetter.Server.Contracts.Requests;
 using DiscordButBetter.Server.Database;
@@ -17,10 +18,11 @@ public class ConversationsModule : CarterModule
 
     public override void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapGet("/list/{id:guid}", (DbbContext db, Guid id) =>
+        app.MapGet("/", (DbbContext db, ClaimsPrincipal claim) =>
         {
+            var userId = Guid.Parse(claim.Claims.First().Value);
             var conversations = db.Users
-                .Include(userModel => userModel.Conversations).FirstOrDefault(u => u.Id == id)
+                .Include(userModel => userModel.Conversations).FirstOrDefault(u => u.Id == userId)
                 ?.Conversations;
 
             if (conversations == null)
@@ -31,10 +33,12 @@ public class ConversationsModule : CarterModule
             return Results.Ok(conversations.Select(c => c.ToConversationResponse()));
         });
         
-        app.MapGet("/list/visible/{id:guid}", (DbbContext db, Guid id) =>
+        app.MapGet("/visible", (DbbContext db, ClaimsPrincipal claim) =>
         {
+            var userId = Guid.Parse(claim.Claims.First().Value);
+            
             var conversations = db.Users
-                .Include(userModel => userModel.VisibleConversations).FirstOrDefault(u => u.Id == id)
+                .Include(userModel => userModel.VisibleConversations).FirstOrDefault(u => u.Id == userId)
                 ?.VisibleConversations;
 
             if (conversations == null)
@@ -45,9 +49,9 @@ public class ConversationsModule : CarterModule
             return Results.Ok(conversations.Select(c => c.ToConversationResponse()));
         });
         
-        app.MapGet("/{id:guid}", (DbbContext db, Guid id) =>
+        app.MapGet("/{conversationId:guid}", (DbbContext db, Guid conversationId) =>
         {
-            var conversation = db.Conversations.FirstOrDefault(c => c.Id == id);
+            var conversation = db.Conversations.FirstOrDefault(c => c.Id == conversationId);
             if (conversation == null)
             {
                 return Results.NotFound();
@@ -56,13 +60,13 @@ public class ConversationsModule : CarterModule
             return Results.Ok(conversation.ToConversationResponse());
         });
         
-        app.MapPost("/{id:guid}", async (DbbContext db,Guid id, [FromBody] CreateConversationRequest request) =>
+        app.MapPut("/{conversationId:guid}", async (DbbContext db,Guid conversationId, [FromBody] CreateConversationRequest request) =>
         {
             if (request.ConversationType == 0)
             {
                 var dm = db.Conversations
                     .FirstOrDefault(c => 
-                        c.Participants.FirstOrDefault(u => u.Id == id) != null &&
+                        c.Participants.FirstOrDefault(u => u.Id == conversationId) != null &&
                         c.Participants.FirstOrDefault(u => u.Id == request.Participants[0]) != null);
                 
                 if (dm != null)
@@ -75,14 +79,50 @@ public class ConversationsModule : CarterModule
                 ConversationName = request.ConversationName,
                 ConversationType = request.ConversationType,
                 ConversationPicture = "",
-                Participants = request.Participants.Select(p => db.Users.FirstOrDefault(u => u.Id == p)).ToList()!
+                Participants = db.Users.Where(u => request.Participants.Contains(u.Id)).ToList()
             };
-            conversation.Participants.Add(db.Users.FirstOrDefault(u => u.Id == id)!);
+            conversation.Participants.Add(db.Users.FirstOrDefault(u => u.Id == conversationId)!);
             
             db.Conversations.Add(conversation);
             await db.SaveChangesAsync();
             
             return Results.Ok(conversation.ToConversationResponse());
+        });
+
+        app.MapDelete("/{conversationId:Guid}", async (
+            DbbContext db,
+            Guid conversationId,
+            ClaimsPrincipal claim) =>
+        {
+            var userId = Guid.Parse(claim.Claims.First().Value);
+            var user = db.Users
+                .FirstOrDefault(u => u.Id == userId);
+            var conversation = db.Conversations
+                .Include(c => c.Participants)
+                .FirstOrDefault(c => c.Id == conversationId);
+            if (conversation == null || user == null)
+            {
+                return Results.NotFound();
+            }
+
+            if (conversation.Participants.FirstOrDefault(u => u.Id == userId) == null)
+            {
+                return Results.NotFound();
+            }
+            
+            if(conversation.ConversationType == 0)
+            {
+                db.Conversations.Remove(conversation);
+            }
+            else
+            {
+                conversation.Participants.Remove(user);
+                if(conversation.Participants.Count == 1)
+                    db.Conversations.Remove(conversation);
+            }
+            
+            await db.SaveChangesAsync();
+            return Results.Ok();
         });
     }
 }

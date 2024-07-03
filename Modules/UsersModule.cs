@@ -4,6 +4,7 @@ using DiscordButBetter.Server.Contracts.Mappers;
 using DiscordButBetter.Server.Contracts.Requests;
 using DiscordButBetter.Server.Database;
 using DiscordButBetter.Server.Database.Models;
+using DiscordButBetter.Server.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -35,75 +36,27 @@ public class UsersModule : CarterModule
             
             return Results.Ok(user.ToUserResponse());
         });
-        
-        app.MapGet("/friends/", (DbbContext db, ClaimsPrincipal claim) =>
+
+        app.MapPatch("/", async (
+            DbbContext db,
+            ClaimsPrincipal claim,
+            UpdateUserInfoRequest request,
+            IUserService userService
+            ) =>
         {
             var userId = Guid.Parse(claim.Claims.First().Value);
-            
-            var user = db.Users.Include(u => u.Friends).FirstOrDefault(u => u.Id == userId);
+            var user = db.Users.FirstOrDefault(u => u.Id == userId);
             if (user == null)
             {
                 return Results.NotFound();
             }
-            
-            return Results.Ok(user.Friends.Select(f => f.ToUserResponse()));
-        });
-        
-        app.MapGet("/friends/requests", (DbbContext db, ClaimsPrincipal claim) =>
-        {
-            var userId = Guid.Parse(claim.Claims.First().Value);
-            
-            var requests = db.FriendRequests.Where(r => r.ReceiverId == userId || r.SenderId == userId).ToList();
-            return Results.Ok(requests.Select(r => r.ToResponse()));
-        });
-
-        app.MapPost("/friends/requests", async ([FromBody] FriendRequestRequest friendRequest,
-            DbbContext db,
-            ClaimsPrincipal claim) =>
-        {
-            var userId = Guid.Parse(claim.Claims.First().Value);
-            var targetUser = db.Users.Include(u => u.Friends).FirstOrDefault(u => u.Id == friendRequest.UserId);
-            var req = db.FriendRequests.FirstOrDefault(r => r.Id == friendRequest.RequestId);
-
-            if (targetUser == null)
-            {
-                return Results.NotFound();
-            }
-
-            switch (friendRequest.Type)
-            {
-                case ReqeustType.Send:
-                    var request = new FriendRequestModel
-                    {
-                        SenderId = userId,
-                        ReceiverId = targetUser.Id
-                    };
-                    db.FriendRequests.Add(request);
-                    await db.SaveChangesAsync();
-                    return Results.Ok();
-                case ReqeustType.Accept:
-                    if (req == null)
-                    {
-                        return Results.NotFound();
-                    }
-                    var currentUser = db.Users.Include(u => u.Friends).First(u => u.Id == userId);
-                    currentUser.Friends.Add(targetUser);
-                    targetUser.Friends.Add(currentUser);
-                    db.FriendRequests.Remove(req);
-                    await db.SaveChangesAsync();
-                    return Results.Ok();
-                case ReqeustType.Decline:
-                case ReqeustType.Cancel:
-                    if (req == null)
-                    {
-                        return Results.NotFound();
-                    }
-                    db.FriendRequests.Remove(req);
-                    await db.SaveChangesAsync();
-                    return Results.Ok();
-                default:
-                    return Results.BadRequest();
-            }
+            if (request.Password != null) user.Password = userService.GeneratePasswordHash(request.Password);
+            if (request.ProfilePicture != null) user.ProfilePicture = request.ProfilePicture;
+            if (request.Status != null) user.Status = request.Status.Value;
+            if (request.StatusMessage != null) user.StatusMessage = request.StatusMessage;
+            if (request.Biography != null) user.Biography = request.Biography;
+            await db.SaveChangesAsync();
+            return Results.Ok(user.ToUserResponse());
         });
 
     }

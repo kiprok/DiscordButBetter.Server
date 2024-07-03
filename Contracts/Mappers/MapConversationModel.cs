@@ -12,18 +12,8 @@ public static class MapConversationModel
             ConversationId = conversation.Id,
             ConversationName = conversation.ConversationName,
             ConversationType = conversation.ConversationType,
-            ConversationPicture = conversation.ConversationPicture
-        };
-    }
-    
-    public static ConversationModel ToConversationModel(this ConversationResponse conversation)
-    {
-        return new ConversationModel
-        {
-            Id = conversation.ConversationId,
-            ConversationName = conversation.ConversationName,
-            ConversationType = conversation.ConversationType,
-            ConversationPicture = conversation.ConversationPicture
+            ConversationPicture = conversation.ConversationPicture,
+            Participants = conversation.Participants.Select(c => c.Id).ToList()
         };
     }
 }
