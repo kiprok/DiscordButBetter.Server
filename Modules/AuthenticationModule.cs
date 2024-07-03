@@ -53,7 +53,7 @@ public class AuthenticationModule : CarterModule
             {
                 Username = request.Username,
                 Password = userService.GeneratePasswordHash(request.Password),
-                CreatedAt = DateTime.Now,
+                CreatedAt = DateTime.UtcNow,
                 Status = 0,
                 ProfilePicture = randomProfilePicture,
                 StatusMessage = $"My name is {randomName}!",

@@ -16,15 +16,39 @@ public class MessagesModule : CarterModule
     
     public override void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapGet("/conversation/{id:guid}", (DbbContext db, Guid id) =>
+        app.MapGet("/conversation/{conversationId:guid}", 
+            (DbbContext db, Guid conversationId) =>
         {
-            var messages = db.Messages.Where(m => m.ConversationId == id);
+            var messages = db.Messages.
+                Where(m => m.ConversationId == conversationId)
+                .OrderByDescending(m => m.SentAt).Take(50);
             return Results.Ok(messages.Select(m => m.ToMessageResponse()));
         });
         
-        app.MapGet("/{id:guid}", (DbbContext db, Guid id) =>
+        app.MapGet("/conversation/{conversationId:guid}/older/{messageTime:Datetime}", 
+            (DbbContext db, Guid conversationId, DateTime messageTime) =>
         {
-            var message = db.Messages.FirstOrDefault(m => m.Id == id);
+            var messages = db.Messages
+                .Where(m => m.ConversationId == conversationId && m.SentAt < messageTime)
+                .OrderByDescending(m => m.SentAt)
+                .Take(50);
+            return Results.Ok(messages.Select(m => m.ToMessageResponse()));
+        });
+        
+        app.MapGet("/conversation/{conversationId:guid}/newer/{messageTime:Datetime}", 
+            (DbbContext db, Guid conversationId, DateTime messageTime) =>
+            {
+                var messages = db.Messages
+                    .Where(m => m.ConversationId == conversationId && m.SentAt > messageTime)
+                    .OrderByDescending(m => m.SentAt)
+                    .Take(50);
+                return Results.Ok(messages.Select(m => m.ToMessageResponse()));
+            });
+        
+        app.MapGet("/{messageId:guid}", 
+            (DbbContext db, Guid messageId) =>
+        {
+            var message = db.Messages.FirstOrDefault(m => m.Id == messageId);
             if (message == null)
             {
                 return Results.NotFound();
@@ -33,11 +57,11 @@ public class MessagesModule : CarterModule
             return Results.Ok(message.ToMessageResponse());
         });
         
-        app.MapPost("/", async (DbbContext db,[FromBody] SendMessageRequest request) =>
+        app.MapPost("/", 
+            async (DbbContext db,[FromBody] SendMessageRequest request) =>
         {
             var message = request.ToChatMessageModel();
             message.Id = Guid.NewGuid();
-            
             
             db.Messages.Add(message);
             await db.SaveChangesAsync();

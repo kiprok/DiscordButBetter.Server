@@ -20,10 +20,15 @@ public class UsersModule : CarterModule
     
     public override void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapGet("/",  (DbbContext db) =>
+        app.MapGet("/",  (DbbContext db, ClaimsPrincipal claim) =>
         { 
-            var users = db.Users.ToList();
-            return Results.Ok(users.Select(u => u.ToUserResponse()));
+            var userId = Guid.Parse(claim.Claims.First().Value);
+            var user = db.Users.FirstOrDefault(u => u.Id == userId);
+            if (user == null)
+            {
+                return Results.NotFound();
+            }
+            return Results.Ok(user.ToUserResponse());
         });
         
         app.MapGet("/{id:guid}", (DbbContext db, Guid id) =>

@@ -60,13 +60,15 @@ public class ConversationsModule : CarterModule
             return Results.Ok(conversation.ToConversationResponse());
         });
         
-        app.MapPut("/{conversationId:guid}", async (DbbContext db,Guid conversationId, [FromBody] CreateConversationRequest request) =>
+        app.MapPut("/", 
+            async (DbbContext db, [FromBody] CreateConversationRequest request, ClaimsPrincipal claim) =>
         {
+            var userId = Guid.Parse(claim.Claims.First().Value);
             if (request.ConversationType == 0)
             {
                 var dm = db.Conversations
                     .FirstOrDefault(c => 
-                        c.Participants.FirstOrDefault(u => u.Id == conversationId) != null &&
+                        c.Participants.FirstOrDefault(u => u.Id == userId) != null &&
                         c.Participants.FirstOrDefault(u => u.Id == request.Participants[0]) != null);
                 
                 if (dm != null)
@@ -81,7 +83,7 @@ public class ConversationsModule : CarterModule
                 ConversationPicture = "",
                 Participants = db.Users.Where(u => request.Participants.Contains(u.Id)).ToList()
             };
-            conversation.Participants.Add(db.Users.FirstOrDefault(u => u.Id == conversationId)!);
+            conversation.Participants.Add(db.Users.FirstOrDefault(u => u.Id == userId)!);
             
             db.Conversations.Add(conversation);
             await db.SaveChangesAsync();
@@ -123,6 +125,30 @@ public class ConversationsModule : CarterModule
             
             await db.SaveChangesAsync();
             return Results.Ok();
+        });
+
+        app.MapPatch("/{conversationId:Guid}", 
+            async (DbbContext db,Guid conversationId, [FromBody]UpdateConversationRequest request) =>
+        {
+            var conversation = db.Conversations
+                .Include(c => c.Participants)
+                .FirstOrDefault(c => c.Id == conversationId);
+            if (conversation == null)
+            {
+                return Results.NotFound();
+            }
+
+            if (request.ConversationName != null)
+                conversation.ConversationName = request.ConversationName;
+            if (request.ConversationPicture != null)
+                conversation.ConversationPicture = request.ConversationPicture;
+            if(request.ParticipantsToAdd != null)
+                conversation.Participants.AddRange(db.Users.Where(u => request.ParticipantsToAdd.Contains(u.Id)));
+            if(request.ParticipantsToRemove != null)
+                conversation.Participants.RemoveAll(u => request.ParticipantsToRemove.Contains(u.Id));
+            
+            await db.SaveChangesAsync();
+            return Results.Ok(conversation.ToConversationResponse());
         });
     }
 }

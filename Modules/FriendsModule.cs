@@ -74,7 +74,7 @@ public class FriendsModule : CarterModule
 
             switch (friendRequest.Type)
             {
-                case ReqeustType.Send:
+                case RequestType.Send:
                     var request = new FriendRequestModel
                     {
                         SenderId = userId,
@@ -83,7 +83,7 @@ public class FriendsModule : CarterModule
                     db.FriendRequests.Add(request);
                     await db.SaveChangesAsync();
                     return Results.Ok();
-                case ReqeustType.Accept:
+                case RequestType.Accept:
                     if (req == null)
                     {
                         return Results.NotFound();
@@ -94,8 +94,8 @@ public class FriendsModule : CarterModule
                     db.FriendRequests.Remove(req);
                     await db.SaveChangesAsync();
                     return Results.Ok();
-                case ReqeustType.Decline:
-                case ReqeustType.Cancel:
+                case RequestType.Decline:
+                case RequestType.Cancel:
                     if (req == null)
                     {
                         return Results.NotFound();
