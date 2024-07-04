@@ -23,18 +23,21 @@ public class AuthHandler : AuthenticationHandler<AuthSchemeOptions>
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
+        var token = "";
         
-        
-        if (!Request.Headers.ContainsKey(AuthSchemeOptions.AuthorizationHeaderName))
+        if (Request.Query.ContainsKey("token"))
+        {
+            token = Request.Query["token"];
+        }else if (Request.Headers.ContainsKey(AuthSchemeOptions.AuthorizationHeaderName))
+        {
+            token = Request.Headers[AuthSchemeOptions.AuthorizationHeaderName];
+        }
+        else
         {
             return AuthenticateResult.Fail("Unauthorized");
         }
 
-        var token = Request.Headers[AuthSchemeOptions.AuthorizationHeaderName];
-        if (string.IsNullOrEmpty(token))
-        {
-            return AuthenticateResult.NoResult();
-        }
+
         
         var session = _userService.Authenticate(token.ToString());
         if (session == null)

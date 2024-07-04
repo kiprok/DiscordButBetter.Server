@@ -1,7 +1,9 @@
 using Carter;
 using DiscordButBetter.Server.Authentication;
 using DiscordButBetter.Server.Database;
+using DiscordButBetter.Server.notificationServer;
 using DiscordButBetter.Server.Services;
+using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
 
 
@@ -16,6 +18,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddAuthentication(AuthSchemeOptions.DefaultScheme)
     .AddScheme<AuthSchemeOptions, AuthHandler>(AuthSchemeOptions.DefaultScheme, options => { });
 builder.Services.AddAuthorization();
+builder.Services.AddSignalR().AddMessagePackProtocol();
 
 var db_host = Environment.GetEnvironmentVariable("DB_HOST") ?? builder.Configuration["DB_HOST"];
 var db_port = Environment.GetEnvironmentVariable("DB_PORT") ?? builder.Configuration["DB_PORT"];
@@ -37,6 +40,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+app.MapHub<NotificationHub>("/hub").RequireAuthorization();
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -44,8 +48,7 @@ app.UseAuthorization();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-
-
 app.MapCarter();
+
 
 app.Run();
