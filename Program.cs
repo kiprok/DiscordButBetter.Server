@@ -19,6 +19,7 @@ builder.Services.AddAuthentication(AuthSchemeOptions.DefaultScheme)
     .AddScheme<AuthSchemeOptions, AuthHandler>(AuthSchemeOptions.DefaultScheme, options => { });
 builder.Services.AddAuthorization();
 builder.Services.AddSignalR().AddMessagePackProtocol();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 var db_host = Environment.GetEnvironmentVariable("DB_HOST") ?? builder.Configuration["DB_HOST"];
 var db_port = Environment.GetEnvironmentVariable("DB_PORT") ?? builder.Configuration["DB_PORT"];

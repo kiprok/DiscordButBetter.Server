@@ -15,17 +15,8 @@ public interface IUserService
     public Task<bool> Logout(string token);
 }
 
-public class UserService : IUserService
+public class UserService(DbbContext db, IMemoryCache cache) : IUserService
 {
-    private readonly DbbContext _db;
-    private readonly IMemoryCache _cache;
-    
-    public UserService(DbbContext db, IMemoryCache cache)
-    {
-        _db = db;
-        _cache = cache;
-    }
-    
     public string GeneratePasswordHash(string password)
     {
         return BCrypt.Net.BCrypt.HashPassword(password);
@@ -43,7 +34,7 @@ public class UserService : IUserService
     
     public async Task<SessionModel?> Authenticate(string username, string password, string ip, string userAgent)
     {
-        var user = _db.Users.FirstOrDefault(u => u.Username == username);
+        var user = db.Users.FirstOrDefault(u => u.Username == username);
         if (user == null || !VerifyPassword(password, user.Password))
         {
             return null;
@@ -60,10 +51,10 @@ public class UserService : IUserService
         var cacheEntryOptions = new MemoryCacheEntryOptions()
             .SetSlidingExpiration(TimeSpan.FromHours(1));
             
-        _cache.Set(session.token, session, cacheEntryOptions);
+        cache.Set(session.token, session, cacheEntryOptions);
         
-        _db.Sessions.Add(session);
-        await _db.SaveChangesAsync();
+        db.Sessions.Add(session);
+        await db.SaveChangesAsync();
         
         
         return session;
@@ -71,16 +62,16 @@ public class UserService : IUserService
     
     public SessionModel? Authenticate(string token)
     {
-        if (!_cache.TryGetValue(token, out SessionModel? session))
+        if (!cache.TryGetValue(token, out SessionModel? session))
         {
-            session = _db.Sessions.FirstOrDefault(s => s.token == token);
+            session = db.Sessions.FirstOrDefault(s => s.token == token);
             if (session == null)
                 return null;
             
             var cacheEntryOptions = new MemoryCacheEntryOptions()
                 .SetSlidingExpiration(TimeSpan.FromHours(1));
             
-            _cache.Set(token, session, cacheEntryOptions);
+            cache.Set(token, session, cacheEntryOptions);
             
         }
         
@@ -89,16 +80,16 @@ public class UserService : IUserService
 
     public async Task<bool> Logout(string token)
     {
-        if (!_cache.TryGetValue(token, out SessionModel? session))
+        if (!cache.TryGetValue(token, out SessionModel? session))
         {
-            session = _db.Sessions.FirstOrDefault(s => s.token == token);
+            session = db.Sessions.FirstOrDefault(s => s.token == token);
             if (session == null)
                 return false;
         }
         
-        _db.Sessions.Remove(session);
-        _cache.Remove(token);
-        await _db.SaveChangesAsync();
+        db.Sessions.Remove(session);
+        cache.Remove(token);
+        await db.SaveChangesAsync();
         
         return true;
     }

@@ -7,14 +7,13 @@ namespace DiscordButBetter.Server.notificationServer;
 
 public class NotificationHub(DbbContext db) : Hub<INotificationClient>
 {
-    private readonly DbbContext _db = db;
 
     public override async Task OnConnectedAsync()
     {
         Console.WriteLine($"userId: {Context.User?.Claims.First().Value}");
         var userId = Guid.Parse(Context.User?.Claims.First().Value!);
         
-        var user = await _db.Users.FindAsync(userId);
+        var user = await db.Users.FindAsync(userId);
 
         if (user is null)
         {
