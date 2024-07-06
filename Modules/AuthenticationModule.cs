@@ -27,6 +27,15 @@ public class AuthenticationModule : CarterModule
             IUserService userService,
             HttpClient client) =>
         {
+            if(request.Username.Length < 3 || request.Username.Length > 20)
+            {
+                return Results.BadRequest("Username must be between 3 and 20 characters.");
+            }
+            if(request.Password.Length < 8 || request.Password.Length > 50)
+            {
+                return Results.BadRequest("Password must be between 8 and 50 characters.");
+            }
+            
             if (await db.Users.AnyAsync(u => u.Username == request.Username))
             {
                 return Results.BadRequest("Username already exists.");
