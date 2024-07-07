@@ -46,5 +46,13 @@ public class DbbContext : DbContext
                 i => i.HasOne(typeof(ConversationModel)).WithMany().HasForeignKey("ConversationId"),
                 j => j.HasOne(typeof(UserModel)).WithMany().HasForeignKey("UserId"));
 
+        modelBuilder.Entity<UserModel>()
+            .HasIndex(u => u.Username);
+
+        modelBuilder.Entity<ChatMessageModel>()
+            .HasIndex(m => new {m.SentAt , m.Content});
+        
+        
+
     }
 }

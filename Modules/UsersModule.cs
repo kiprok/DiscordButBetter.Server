@@ -65,6 +65,14 @@ public class UsersModule : CarterModule
             await db.SaveChangesAsync();
             return Results.Ok(user.ToUserResponse());
         });
+        
+        app.MapGet("/search", 
+            (DbbContext db,[FromQuery] string query) =>
+        {
+            var loweredQuery = query.ToLower();
+            var users = db.Users.Where(u => u.Username.ToLower().Contains(loweredQuery)).ToList();
+            return Results.Ok(users.Select(u => u.ToUserResponse()));
+        });
 
     }
 }
