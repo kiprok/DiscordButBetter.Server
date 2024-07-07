@@ -22,7 +22,9 @@ public class ConversationsModule : CarterModule
         {
             var userId = Guid.Parse(claim.Claims.First().Value);
             var conversations = db.Users
-                .Include(userModel => userModel.Conversations).FirstOrDefault(u => u.Id == userId)
+                .Include(u => u.Conversations)
+                .ThenInclude(c => c.Participants)
+                .FirstOrDefault(u => u.Id == userId)
                 ?.Conversations;
 
             if (conversations == null)
@@ -38,15 +40,16 @@ public class ConversationsModule : CarterModule
             var userId = Guid.Parse(claim.Claims.First().Value);
             
             var conversations = db.Users
-                .Include(userModel => userModel.VisibleConversations).FirstOrDefault(u => u.Id == userId)
-                ?.VisibleConversations;
+                .Include(userModel => userModel.VisibleConversations)
+                .FirstOrDefault(u => u.Id == userId)
+                ?.VisibleConversations.ToList();
 
             if (conversations == null)
             {
                 return Results.NotFound();
             }
             
-            return Results.Ok(conversations.Select(c => c.ToConversationResponse()));
+            return Results.Ok(conversations.Select(c => c.Id));
         });
         
         app.MapGet("/{conversationId:guid}", (DbbContext db, Guid conversationId) =>
@@ -98,6 +101,7 @@ public class ConversationsModule : CarterModule
         {
             var userId = Guid.Parse(claim.Claims.First().Value);
             var user = db.Users
+                .Include(u => u.VisibleConversations)
                 .FirstOrDefault(u => u.Id == userId);
             var conversation = db.Conversations
                 .Include(c => c.Participants)
@@ -114,7 +118,7 @@ public class ConversationsModule : CarterModule
             
             if(conversation.ConversationType == 0)
             {
-                db.Conversations.Remove(conversation);
+                user.VisibleConversations.Remove(conversation);
             }
             else
             {
@@ -150,5 +154,6 @@ public class ConversationsModule : CarterModule
             await db.SaveChangesAsync();
             return Results.Ok(conversation.ToConversationResponse());
         });
+        
     }
 }
