@@ -1,6 +1,0 @@
-@DiscordButBetter.Server_HostAddress = http://localhost:5085
-
-GET {{DiscordButBetter.Server_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
