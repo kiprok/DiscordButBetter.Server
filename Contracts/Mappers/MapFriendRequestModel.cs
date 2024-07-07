@@ -11,16 +11,8 @@ public static class MapFriendRequestModel
         return new FriendRequestResponse
         {
             RequestId = model.Id,
-            SenderId = model.SenderId
-        };
-    }
-    
-    public static FriendRequestModel ToModel(this FriendRequestRequest request)
-    {
-        return new FriendRequestModel
-        {
-            SenderId = request.UserId,
-            ReceiverId = request.RequestId ?? Guid.Empty
+            SenderId = model.SenderId,
+            ReceiverId = model.ReceiverId
         };
     }
 }

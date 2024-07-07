@@ -40,12 +40,13 @@ public class FriendsModule : CarterModule
             {
                 return Results.NotFound();
             }
-            var friend = user.Friends.FirstOrDefault(f => f.Id == friendId);
+            var friend = db.Users.Include(u => u.Friends).FirstOrDefault(u => u.Id == friendId);
             if (friend == null)
             {
                 return Results.NotFound();
             }
             user.Friends.Remove(friend);
+            friend.Friends.Remove(user);
             db.SaveChanges();
             return Results.Ok();
         });
@@ -82,7 +83,7 @@ public class FriendsModule : CarterModule
                     };
                     db.FriendRequests.Add(request);
                     await db.SaveChangesAsync();
-                    return Results.Ok();
+                    return Results.Ok(request.ToResponse());
                 case RequestType.Accept:
                     if (req == null)
                     {

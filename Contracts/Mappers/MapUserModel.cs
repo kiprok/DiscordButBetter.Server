@@ -12,18 +12,7 @@ public static class MapUserModel
             UserId = user.Id,
             Username = user.Username,
             ProfilePicture = user.ProfilePicture,
-            StatusMessage = user.StatusMessage,
-            Biography = user.Biography
-        };
-    }
-    
-    public static UserModel ToUserModel(this UserResponse user)
-    {
-        return new UserModel
-        {
-            Id = user.UserId,
-            Username = user.Username,
-            ProfilePicture = user.ProfilePicture,
+            Status = user.Status,
             StatusMessage = user.StatusMessage,
             Biography = user.Biography
         };

@@ -67,10 +67,12 @@ public class UsersModule : CarterModule
         });
         
         app.MapGet("/search", 
-            (DbbContext db,[FromQuery] string query) =>
+            (DbbContext db,[FromQuery] string query, ClaimsPrincipal claim) =>
         {
+            var userId = Guid.Parse(claim.Claims.First().Value);
+            
             var loweredQuery = query.ToLower();
-            var users = db.Users.Where(u => u.Username.ToLower().Contains(loweredQuery)).ToList();
+            var users = db.Users.Where(u => u.Username.ToLower().Contains(loweredQuery) && u.Id != userId).Take(10).ToList();
             return Results.Ok(users.Select(u => u.ToUserResponse()));
         });
 
