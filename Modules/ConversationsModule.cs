@@ -52,6 +52,31 @@ public class ConversationsModule : CarterModule
             return Results.Ok(conversations.Select(c => c.Id));
         });
         
+        app.MapDelete("/visible/{conversationId:Guid}", async (
+            DbbContext db,
+            Guid conversationId,
+            ClaimsPrincipal claim) =>
+        {
+            var userId = Guid.Parse(claim.Claims.First().Value);
+            var user = db.Users
+                .Include(u => u.VisibleConversations)
+                .ThenInclude(c => c.Participants)
+                .FirstOrDefault(u => u.Id == userId);
+            if(user == null)
+                return Results.NotFound();
+            
+            var conversation = user.VisibleConversations.FirstOrDefault(c => c.Id == conversationId);
+            if (conversation == null)
+                return Results.NotFound();
+
+            if (conversation.Participants.FirstOrDefault(u => u.Id == userId) == null)
+                return Results.NotFound();
+            
+            user.VisibleConversations.Remove(conversation);
+            await db.SaveChangesAsync();
+            return Results.Ok();
+        });
+        
         app.MapGet("/{conversationId:guid}", (DbbContext db, Guid conversationId) =>
         {
             var conversation = db.Conversations.FirstOrDefault(c => c.Id == conversationId);
@@ -78,15 +103,18 @@ public class ConversationsModule : CarterModule
                     return Results.Ok(dm.ToConversationResponse());
             }
             
+            var participants = db.Users.Where(u => request.Participants.Contains(u.Id)).ToList();
+            participants.Add(db.Users.FirstOrDefault(u => u.Id == userId)!);
+            
             var conversation = new ConversationModel
             {
                 Id = Guid.NewGuid(),
                 ConversationName = request.ConversationName,
                 ConversationType = request.ConversationType,
                 ConversationPicture = "",
-                Participants = db.Users.Where(u => request.Participants.Contains(u.Id)).ToList()
+                Participants = participants,
+                ParticipantsVisible = participants
             };
-            conversation.Participants.Add(db.Users.FirstOrDefault(u => u.Id == userId)!);
             
             db.Conversations.Add(conversation);
             await db.SaveChangesAsync();
