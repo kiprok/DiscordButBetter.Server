@@ -2,8 +2,10 @@
 using Carter;
 using DiscordButBetter.Server.Contracts.Mappers;
 using DiscordButBetter.Server.Contracts.Requests;
+using DiscordButBetter.Server.Contracts.Responses;
 using DiscordButBetter.Server.Database;
 using DiscordButBetter.Server.Database.Models;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,99 +16,89 @@ public class FriendsModule : CarterModule
     public FriendsModule() : base("/api/users/friends")
     {
         RequireAuthorization();
+        IncludeInOpenApi();
+        WithTags("Friends");
     }
-    
+
     public override void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapGet("/", (DbbContext db, ClaimsPrincipal claim) =>
-        {
-            var userId = Guid.Parse(claim.Claims.First().Value);
-            
-            var user = db.Users.Include(u => u.Friends).FirstOrDefault(u => u.Id == userId);
-            if (user == null)
-            {
-                return Results.NotFound();
-            }
-            
-            return Results.Ok(user.Friends.Select(f => f.ToUserResponse()));
-        });
+        app.MapGet("/", GetFriendsForUser);
 
-        app.MapDelete("/{friendId:guid}", (DbbContext db, ClaimsPrincipal claim, Guid friendId) =>
-        {
-            var userId = Guid.Parse(claim.Claims.First().Value);
-            
-            var user = db.Users.Include(u => u.Friends).FirstOrDefault(u => u.Id == userId);
-            if (user == null)
-            {
-                return Results.NotFound();
-            }
-            var friend = db.Users.Include(u => u.Friends).FirstOrDefault(u => u.Id == friendId);
-            if (friend == null)
-            {
-                return Results.NotFound();
-            }
-            user.Friends.Remove(friend);
-            friend.Friends.Remove(user);
-            db.SaveChanges();
-            return Results.Ok();
-        });
-        
-        app.MapGet("/requests", (DbbContext db, ClaimsPrincipal claim) =>
-        {
-            var userId = Guid.Parse(claim.Claims.First().Value);
-            
-            var requests = db.FriendRequests.Where(r => r.ReceiverId == userId || r.SenderId == userId).ToList();
-            return Results.Ok(requests.Select(r => r.ToResponse()));
-        });
+        app.MapDelete("/{friendId:guid}", RemoveFriendForUser);
 
-        app.MapPost("/requests", async (
-            [FromBody] FriendRequestRequest friendRequest,
-            DbbContext db,
-            ClaimsPrincipal claim) =>
+        app.MapGet("/requests", GetFriendRequestsForUser);
+
+        app.MapPost("/requests", HandleFriendRequestForUser);
+    }
+
+    private async Task<Results<Ok<FriendRequestResponse>, Ok, NotFound, BadRequest>> HandleFriendRequestForUser(
+        [FromBody] FriendRequestRequest friendRequest, DbbContext db, ClaimsPrincipal claim)
+    {
+        var userId = Guid.Parse(claim.Claims.First().Value);
+        var targetUser = db.Users.Include(u => u.Friends).FirstOrDefault(u => u.Id == friendRequest.UserId);
+        var req = db.FriendRequests.FirstOrDefault(r => r.Id == friendRequest.RequestId);
+
+        if (targetUser == null) return TypedResults.NotFound();
+
+        switch (friendRequest.Type)
         {
-            var userId = Guid.Parse(claim.Claims.First().Value);
-            var targetUser = db.Users.Include(u => u.Friends).FirstOrDefault(u => u.Id == friendRequest.UserId);
-            var req = db.FriendRequests.FirstOrDefault(r => r.Id == friendRequest.RequestId);
+            case RequestType.Send:
+                var request = new FriendRequestModel { SenderId = userId, ReceiverId = targetUser.Id };
+                db.FriendRequests.Add(request);
+                await db.SaveChangesAsync();
+                return TypedResults.Ok(request.ToResponse());
+            case RequestType.Accept:
+                if (req == null) return TypedResults.NotFound();
 
-            if (targetUser == null)
-            {
-                return Results.NotFound();
-            }
+                var currentUser = db.Users.Include(u => u.Friends).First(u => u.Id == userId);
+                currentUser.Friends.Add(targetUser);
+                targetUser.Friends.Add(currentUser);
+                db.FriendRequests.Remove(req);
+                await db.SaveChangesAsync();
+                return TypedResults.Ok();
+            case RequestType.Decline:
+            case RequestType.Cancel:
+                if (req == null) return TypedResults.NotFound();
 
-            switch (friendRequest.Type)
-            {
-                case RequestType.Send:
-                    var request = new FriendRequestModel
-                    {
-                        SenderId = userId,
-                        ReceiverId = targetUser.Id
-                    };
-                    db.FriendRequests.Add(request);
-                    await db.SaveChangesAsync();
-                    return Results.Ok(request.ToResponse());
-                case RequestType.Accept:
-                    if (req == null)
-                    {
-                        return Results.NotFound();
-                    }
-                    var currentUser = db.Users.Include(u => u.Friends).First(u => u.Id == userId);
-                    currentUser.Friends.Add(targetUser);
-                    targetUser.Friends.Add(currentUser);
-                    db.FriendRequests.Remove(req);
-                    await db.SaveChangesAsync();
-                    return Results.Ok();
-                case RequestType.Decline:
-                case RequestType.Cancel:
-                    if (req == null)
-                    {
-                        return Results.NotFound();
-                    }
-                    db.FriendRequests.Remove(req);
-                    await db.SaveChangesAsync();
-                    return Results.Ok();
-                default:
-                    return Results.BadRequest();
-            }
-        });
+                db.FriendRequests.Remove(req);
+                await db.SaveChangesAsync();
+                return TypedResults.Ok();
+            default:
+                return TypedResults.BadRequest();
+        }
+    }
+
+    private Ok<List<FriendRequestResponse>> GetFriendRequestsForUser(DbbContext db, ClaimsPrincipal claim)
+    {
+        var userId = Guid.Parse(claim.Claims.First().Value);
+
+        var requests = db.FriendRequests.Where(r => r.ReceiverId == userId || r.SenderId == userId).ToList();
+        return TypedResults.Ok(requests.Select(r => r.ToResponse()).ToList());
+    }
+
+    private Results<Ok, NotFound> RemoveFriendForUser(DbbContext db, ClaimsPrincipal claim, Guid friendId)
+    {
+        var userId = Guid.Parse(claim.Claims.First().Value);
+
+        var user = db.Users.Include(u => u.Friends).FirstOrDefault(u => u.Id == userId);
+        if (user == null) return TypedResults.NotFound();
+
+        var friend = db.Users.Include(u => u.Friends).FirstOrDefault(u => u.Id == friendId);
+        if (friend == null) return TypedResults.NotFound();
+
+        user.Friends.Remove(friend);
+        friend.Friends.Remove(user);
+        db.SaveChanges();
+        return TypedResults.Ok();
+    }
+
+    private Results<Ok<List<UserResponse>>, NotFound> GetFriendsForUser(DbbContext db, ClaimsPrincipal claim)
+    {
+        var userId = Guid.Parse(claim.Claims.First().Value);
+
+        var user = db.Users.Include(u => u.Friends).FirstOrDefault(u => u.Id == userId);
+        if (user == null) return TypedResults.NotFound();
+
+        return TypedResults.Ok(user.Friends.Select(f => f.ToUserResponse()).ToList());
     }
 }
