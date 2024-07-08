@@ -95,14 +95,21 @@ public class ConversationsModule : CarterModule
             if (request.ConversationType == 0)
             {
                 var dm = db.Conversations
-                    .FirstOrDefault(c => 
+                    .Include(c => c.Participants)
+                    .Include(c => c.ParticipantsVisible)
+                    .FirstOrDefault(c =>
                         c.Participants.FirstOrDefault(u => u.Id == userId) != null &&
                         c.Participants.FirstOrDefault(u => u.Id == request.Participants[0]) != null);
-                
+
+
                 if (dm != null)
+                {
+                    dm.ParticipantsVisible.Add(db.Users.First(u => u.Id == userId));
+                    await db.SaveChangesAsync();
                     return Results.Ok(dm.ToConversationResponse());
+                }
             }
-            
+
             var participants = db.Users.Where(u => request.Participants.Contains(u.Id)).ToList();
             participants.Add(db.Users.FirstOrDefault(u => u.Id == userId)!);
             
