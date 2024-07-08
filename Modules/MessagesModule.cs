@@ -88,7 +88,8 @@ public class MessagesModule : CarterModule
     private Ok<List<MessageResponse>> GetNewerMessagesFromConversation(DbbContext db, Guid conversationId,
         DateTime messageTime)
     {
-        var messages = db.Messages.Where(m => m.ConversationId == conversationId && m.SentAt > messageTime)
+        var messages = db.Messages
+            .Where(m => m.ConversationId == conversationId && m.SentAt > messageTime)
             .OrderBy(m => m.SentAt)
             .Take(50);
         return TypedResults.Ok(messages.Select(m => m.ToMessageResponse()).ToList());
@@ -97,7 +98,8 @@ public class MessagesModule : CarterModule
     private Ok<List<MessageResponse>> GetOlderMesssagesFromConversation(DbbContext db, Guid conversationId,
         DateTime messageTime)
     {
-        var messages = db.Messages.Where(m => m.ConversationId == conversationId && m.SentAt < messageTime)
+        var messages = db.Messages
+            .Where(m => m.ConversationId == conversationId && m.SentAt < messageTime)
             .OrderBy(m => m.SentAt)
             .Take(50);
         return TypedResults.Ok(messages.Select(m => m.ToMessageResponse()).ToList());
@@ -105,7 +107,8 @@ public class MessagesModule : CarterModule
 
     private Ok<List<MessageResponse>> GetMessagesFromConversation(DbbContext db, Guid conversationId)
     {
-        var messages = db.Messages.Where(m => m.ConversationId == conversationId)
+        var messages = db.Messages
+            .Where(m => m.ConversationId == conversationId)
             .OrderBy(m => m.SentAt)
             .Take(50);
         return TypedResults.Ok(messages.Select(m => m.ToMessageResponse()).ToList());
