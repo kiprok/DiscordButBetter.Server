@@ -89,7 +89,7 @@ public class MessagesModule : CarterModule
         DateTime messageTime)
     {
         var messages = db.Messages.Where(m => m.ConversationId == conversationId && m.SentAt > messageTime)
-            .OrderByDescending(m => m.SentAt)
+            .OrderBy(m => m.SentAt)
             .Take(50);
         return TypedResults.Ok(messages.Select(m => m.ToMessageResponse()).ToList());
     }
@@ -98,7 +98,7 @@ public class MessagesModule : CarterModule
         DateTime messageTime)
     {
         var messages = db.Messages.Where(m => m.ConversationId == conversationId && m.SentAt < messageTime)
-            .OrderByDescending(m => m.SentAt)
+            .OrderBy(m => m.SentAt)
             .Take(50);
         return TypedResults.Ok(messages.Select(m => m.ToMessageResponse()).ToList());
     }
@@ -106,7 +106,7 @@ public class MessagesModule : CarterModule
     private Ok<List<MessageResponse>> GetMessagesFromConversation(DbbContext db, Guid conversationId)
     {
         var messages = db.Messages.Where(m => m.ConversationId == conversationId)
-            .OrderByDescending(m => m.SentAt)
+            .OrderBy(m => m.SentAt)
             .Take(50);
         return TypedResults.Ok(messages.Select(m => m.ToMessageResponse()).ToList());
     }
