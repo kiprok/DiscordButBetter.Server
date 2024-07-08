@@ -90,11 +90,19 @@ public class ConversationsModule : CarterModule
         var userId = Guid.Parse(claim.Claims.First().Value);
         if (request.ConversationType == 0)
         {
-            var dm = db.Conversations.FirstOrDefault(c =>
-                c.Participants.FirstOrDefault(u => u.Id == userId) != null &&
-                c.Participants.FirstOrDefault(u => u.Id == request.Participants[0]) != null);
+            var dm = db.Conversations
+                .Include(c => c.Participants)
+                .Include(c => c.ParticipantsVisible)
+                .FirstOrDefault(c =>
+                    c.Participants.FirstOrDefault(u => u.Id == userId) != null &&
+                    c.Participants.FirstOrDefault(u => u.Id == request.Participants[0]) != null);
 
-            if (dm != null) return TypedResults.Ok(dm.ToConversationResponse());
+            if (dm != null)
+            {
+                dm.ParticipantsVisible.Add(db.Users.FirstOrDefault(u => u.Id == userId)!);
+                await db.SaveChangesAsync();
+                return TypedResults.Ok(dm.ToConversationResponse());
+            }
         }
 
         var participants = db.Users.Where(u => request.Participants.Contains(u.Id)).ToList();
