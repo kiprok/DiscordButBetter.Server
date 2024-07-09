@@ -23,11 +23,11 @@ public class MessagesModule : CarterModule
     {
         app.MapGet("/conversation/{conversationId:guid}", GetMessagesFromConversation);
 
-        app.MapGet("/conversation/{conversationId:guid}/older/{messageTime:Datetime}",
-            GetOlderMesssagesFromConversation);
+        app.MapGet("/conversation/{conversationId:guid}/older/{messageTime:Datetime}", GetOlderMessages);
 
-        app.MapGet("/conversation/{conversationId:guid}/newer/{messageTime:Datetime}",
-            GetNewerMessagesFromConversation);
+        app.MapGet("/conversation/{conversationId:guid}/newer/{messageTime:Datetime}", GetNewerMessages);
+        
+        app.MapGet("/conversation/{conversationId:guid}/point/{messageId:guid}", GetSurroundingMessages);
 
         app.MapGet("/{messageId:guid}", GetMessageById);
 
@@ -85,7 +85,7 @@ public class MessagesModule : CarterModule
         return TypedResults.Ok(message.ToMessageResponse());
     }
 
-    private Ok<List<MessageResponse>> GetNewerMessagesFromConversation(DbbContext db, Guid conversationId,
+    private Ok<List<MessageResponse>> GetNewerMessages(DbbContext db, Guid conversationId,
         DateTime messageTime)
     {
         var messages = db.Messages
@@ -95,12 +95,12 @@ public class MessagesModule : CarterModule
         return TypedResults.Ok(messages.Select(m => m.ToMessageResponse()).ToList());
     }
 
-    private Ok<List<MessageResponse>> GetOlderMesssagesFromConversation(DbbContext db, Guid conversationId,
+    private Ok<List<MessageResponse>> GetOlderMessages(DbbContext db, Guid conversationId,
         DateTime messageTime)
     {
         var messages = db.Messages
             .Where(m => m.ConversationId == conversationId && m.SentAt < messageTime)
-            .OrderBy(m => m.SentAt)
+            .OrderByDescending(m => m.SentAt)
             .Take(50);
         return TypedResults.Ok(messages.Select(m => m.ToMessageResponse()).ToList());
     }
@@ -109,8 +109,31 @@ public class MessagesModule : CarterModule
     {
         var messages = db.Messages
             .Where(m => m.ConversationId == conversationId)
-            .OrderBy(m => m.SentAt)
+            .OrderByDescending(m => m.SentAt)
             .Take(50);
         return TypedResults.Ok(messages.Select(m => m.ToMessageResponse()).ToList());
+    }
+    
+    private Results<Ok<List<MessageResponse>>,NotFound> GetSurroundingMessages(DbbContext db, Guid conversationId, Guid messageId)
+    {
+        var targetMessage = db.Messages.FirstOrDefault(m => m.Id == messageId);
+        if(targetMessage == null) return TypedResults.NotFound();
+        
+        var messagesAbove = db.Messages
+            .Where(m => m.ConversationId == conversationId && m.SentAt < targetMessage.SentAt)
+            .OrderByDescending(m => m.SentAt)
+            .Take(25).ToList();
+        
+        var messagesBelow = db.Messages
+            .Where(m => m.ConversationId == conversationId && m.SentAt > targetMessage.SentAt)
+            .OrderBy(m => m.SentAt)
+            .Take(25).ToList();
+        
+        var combinedMessages = messagesAbove
+            .Concat(new []{targetMessage})
+            .Concat(messagesBelow)
+            .OrderByDescending(m => m.SentAt);
+        
+        return TypedResults.Ok(combinedMessages.Select(m => m.ToMessageResponse()).ToList());
     }
 }
