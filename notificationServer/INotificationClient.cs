@@ -5,5 +5,7 @@ namespace DiscordButBetter.Server.notificationServer;
 
 public interface INotificationClient
 {
-    Task ReceiveNotification(string notification, UserResponse user);
+    Task InitializedUser();
+    
+    Task ReceiveMessage(MessageResponse message);
 }

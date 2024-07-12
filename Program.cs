@@ -20,7 +20,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddAuthentication(AuthSchemeOptions.DefaultScheme)
     .AddScheme<AuthSchemeOptions, AuthHandler>(AuthSchemeOptions.DefaultScheme, options => { });
 builder.Services.AddAuthorization();
-builder.Services.AddSignalR().AddMessagePackProtocol();
+builder.Services.AddSignalR();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 
 

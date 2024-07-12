@@ -1,4 +1,5 @@
-﻿using DiscordButBetter.Server.Database;
+﻿using DiscordButBetter.Server.Contracts.Responses;
+using DiscordButBetter.Server.Database;
 using DiscordButBetter.Server.notificationServer;
 using Microsoft.AspNetCore.SignalR;
 
@@ -6,7 +7,9 @@ namespace DiscordButBetter.Server.Services;
 
 public interface INotificationService
 {
-    Task<bool> SendFriendAddedNotification(Guid userId, Guid friendId);
+    Task SendFriendAddedNotification(Guid userId, Guid friendId);
+    
+    Task SendMessageNotification(MessageResponse message);
 }
 
 public class NotificationService
@@ -14,8 +17,13 @@ public class NotificationService
     : INotificationService
 {
 
-    public Task<bool> SendFriendAddedNotification(Guid userId, Guid friendId)
+    public Task SendFriendAddedNotification(Guid userId, Guid friendId)
     {
         throw new NotImplementedException();
+    }
+
+    public async Task SendMessageNotification(MessageResponse message)
+    {
+        await hubContext.Clients.Groups(message.ConversationId.ToString()).ReceiveMessage(message);
     }
 }

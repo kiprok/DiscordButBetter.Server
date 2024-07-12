@@ -5,6 +5,7 @@ using DiscordButBetter.Server.Contracts.Requests;
 using DiscordButBetter.Server.Contracts.Responses;
 using DiscordButBetter.Server.Database;
 using DiscordButBetter.Server.Database.Models;
+using DiscordButBetter.Server.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -36,6 +37,8 @@ public class MessagesModule : CarterModule
         app.MapDelete("/{messageId:guid}", DeleteMessageById);
 
         app.MapPatch("/{messageId:guid}", UpdateMessageById);
+        
+        app.MapGet("/conversation/{conversationId:guid}/search", SearchForMessages);
     }
 
     private async Task<Results<Ok<MessageResponse>, NotFound>> UpdateMessageById(DbbContext db, Guid messageId,
@@ -63,8 +66,11 @@ public class MessagesModule : CarterModule
         return TypedResults.Ok();
     }
 
-    private async Task<Ok<MessageResponse>> CreateNewMessage(DbbContext db, [FromBody] SendChatMessageRequest request,
-        ClaimsPrincipal claim)
+    private async Task<Ok<MessageResponse>> CreateNewMessage(
+        DbbContext db, 
+        [FromBody] SendChatMessageRequest request,
+        ClaimsPrincipal claim,
+        INotificationService notificationService)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
         var message = request.ToChatMessageModel();
@@ -74,7 +80,11 @@ public class MessagesModule : CarterModule
         db.Messages.Add(message);
         await db.SaveChangesAsync();
 
-        return TypedResults.Ok(message.ToMessageResponse());
+        var response = message.ToMessageResponse();
+
+        await notificationService.SendMessageNotification(response);
+        
+        return TypedResults.Ok(response);
     }
 
     private Results<Ok<MessageResponse>, NotFound> GetMessageById(DbbContext db, Guid messageId)
@@ -135,5 +145,28 @@ public class MessagesModule : CarterModule
             .OrderByDescending(m => m.SentAt);
         
         return TypedResults.Ok(combinedMessages.Select(m => m.ToMessageResponse()).ToList());
+    }
+    
+    private Ok<MessageSearchResponse> SearchForMessages(
+        DbbContext db, 
+        Guid conversationId, 
+        [FromQuery]string query, 
+        [FromQuery]int page = 1)
+    {
+        var messages = db.Messages
+            .Where(m => m.ConversationId == conversationId)
+            .Where(m => m.Content.Contains(query))
+            .OrderByDescending(m => m.SentAt)
+            .ToList();
+        
+        
+        return TypedResults.Ok(new MessageSearchResponse
+        {
+            TotalCount = messages.Count,
+            Messages = messages
+                .Skip((page-1) * 25)
+                .Take(25)
+                .Select(m => m.ToMessageResponse()).ToList()
+        });
     }
 }
