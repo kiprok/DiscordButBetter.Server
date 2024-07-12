@@ -5,6 +5,7 @@ using DiscordButBetter.Server.Contracts.Requests;
 using DiscordButBetter.Server.Contracts.Responses;
 using DiscordButBetter.Server.Database;
 using DiscordButBetter.Server.Database.Models;
+using DiscordButBetter.Server.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -32,7 +33,10 @@ public class FriendsModule : CarterModule
     }
 
     private async Task<Results<Ok<FriendRequestResponse>, Ok, NotFound, BadRequest>> HandleFriendRequestForUser(
-        [FromBody] FriendRequestRequest friendRequest, DbbContext db, ClaimsPrincipal claim)
+        [FromBody] FriendRequestRequest friendRequest, 
+        DbbContext db, 
+        ClaimsPrincipal claim,
+        INotificationService notificationService)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
         var targetUser = db.Users.Include(u => u.Friends).FirstOrDefault(u => u.Id == friendRequest.UserId);
@@ -46,6 +50,7 @@ public class FriendsModule : CarterModule
                 var request = new FriendRequestModel { SenderId = userId, ReceiverId = targetUser.Id };
                 db.FriendRequests.Add(request);
                 await db.SaveChangesAsync();
+                await notificationService.SendFriendRequestNotification(request.ToResponse());
                 return TypedResults.Ok(request.ToResponse());
             case RequestType.Accept:
                 if (req == null) return TypedResults.NotFound();

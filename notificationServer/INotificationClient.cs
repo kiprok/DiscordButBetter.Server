@@ -8,4 +8,8 @@ public interface INotificationClient
     Task InitializedUser();
     
     Task ReceiveMessage(MessageResponse message);
+    
+    Task ReceiveFriendRequest(FriendRequestResponse request);
+    Task ReceiveFriendAdded(FriendRequestResponse request);
+    
 }

@@ -10,6 +10,8 @@ public interface INotificationService
     Task SendFriendAddedNotification(Guid userId, Guid friendId);
     
     Task SendMessageNotification(MessageResponse message);
+    
+    Task SendFriendRequestNotification(FriendRequestResponse request);
 }
 
 public class NotificationService
@@ -25,5 +27,10 @@ public class NotificationService
     public async Task SendMessageNotification(MessageResponse message)
     {
         await hubContext.Clients.Groups(message.ConversationId.ToString()).ReceiveMessage(message);
+    }
+
+    public async Task SendFriendRequestNotification(FriendRequestResponse request)
+    {
+        await hubContext.Clients.User(request.ReceiverId.ToString()).ReceiveFriendRequest(request);
     }
 }
