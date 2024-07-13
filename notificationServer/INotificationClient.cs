@@ -19,8 +19,9 @@ public interface INotificationClient
     Task FriendRequestCanceled(FriendRequestResponse request);
     
     // Conversations
-    Task AddedToConversation(ConversationResponse conversation);
-    Task RemovedFromConversation(ConversationResponse conversation);
+    Task CreatedNewConversation(ConversationResponse conversation);
+    Task AddedToConversation(ConversationResponse conversation, Guid userId);
+    Task RemovedFromConversation(Guid conversationId, Guid userId);
     Task ConversationInfoChanged(ConversationResponse conversation);
     
     // Users

@@ -58,7 +58,7 @@ public class MessagesModule : CarterModule
 
         var response = message.ToMessageResponse();
         
-        await notificationService.SendMessageEditedNotification(response);
+        await notificationService.SendMessageEdited(response);
         
         return TypedResults.Ok(response);
     }
@@ -71,7 +71,7 @@ public class MessagesModule : CarterModule
         db.Messages.Remove(message);
         await db.SaveChangesAsync();
         
-        await notificationService.SendMessageDeletedNotification(message.ToMessageResponse());
+        await notificationService.SendMessageDeleted(message.ToMessageResponse());
         
         return TypedResults.Ok();
     }
@@ -92,7 +92,7 @@ public class MessagesModule : CarterModule
 
         var response = message.ToMessageResponse();
 
-        await notificationService.SendMessageNotification(response);
+        await notificationService.SendMessage(response);
         
         return TypedResults.Ok(response);
     }

@@ -80,4 +80,11 @@ public class NotificationHub(DbbContext db) : Hub<INotificationClient>
             foreach (var connectionId in connectionIds)
                 await hubContext.Groups.AddToGroupAsync(connectionId, groupId.ToString());
     }
+    
+    public static async Task RemoveFromGroupAsync(IHubContext<NotificationHub, INotificationClient> hubContext, Guid userId, Guid groupId)
+    {
+        if (ConnectedUsers.TryGetValue(userId, out var connectionIds))
+            foreach (var connectionId in connectionIds)
+                await hubContext.Groups.RemoveFromGroupAsync(connectionId, groupId.ToString());
+    }
 }

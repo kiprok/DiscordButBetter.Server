@@ -50,7 +50,7 @@ public class FriendsModule : CarterModule
                 var request = new FriendRequestModel { SenderId = userId, ReceiverId = targetUser.Id };
                 db.FriendRequests.Add(request);
                 await db.SaveChangesAsync();
-                await notificationService.SendFriendRequestNotification(request.ToResponse());
+                await notificationService.SendFriendRequest(request.ToResponse());
                 return TypedResults.Ok(request.ToResponse());
             case RequestType.Accept:
                 if (req == null) return TypedResults.NotFound();
@@ -60,20 +60,20 @@ public class FriendsModule : CarterModule
                 targetUser.Friends.Add(currentUser);
                 db.FriendRequests.Remove(req);
                 await db.SaveChangesAsync();
-                await notificationService.SendFriendRequestAcceptedNotification(req.ToResponse());
+                await notificationService.SendFriendRequestAccepted(req.ToResponse());
                 return TypedResults.Ok();
             case RequestType.Decline:
                 if (req == null) return TypedResults.NotFound();
                 db.FriendRequests.Remove(req);
                 await db.SaveChangesAsync();
-                await notificationService.SendFriendRequestDeclinedNotification(req.ToResponse());
+                await notificationService.SendFriendRequestDeclined(req.ToResponse());
 
                 return TypedResults.Ok();
             case RequestType.Cancel:
                 if (req == null) return TypedResults.NotFound();
                 db.FriendRequests.Remove(req);
                 await db.SaveChangesAsync();
-                await notificationService.SendFriendRequestCanceledNotification(req.ToResponse());
+                await notificationService.SendFriendRequestCanceled(req.ToResponse());
                 return TypedResults.Ok();
             default:
                 return TypedResults.BadRequest();
@@ -105,7 +105,7 @@ public class FriendsModule : CarterModule
         user.Friends.Remove(friend);
         friend.Friends.Remove(user);
         await db.SaveChangesAsync();
-        await notificationService.SendFriendRemovedNotification(userId, friendId);
+        await notificationService.SendFriendRemoved(userId, friendId);
         return TypedResults.Ok();
     }
 
