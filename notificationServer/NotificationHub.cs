@@ -16,13 +16,13 @@ public class NotificationHub(DbbContext db) : Hub<INotificationClient>
         Console.WriteLine($"userId: {Context.User?.Claims.First().Value}");
         var userId = Guid.Parse(Context.User?.Claims.First().Value!);
         
-        var user = db.Users
+        var user = await db.Users
             .Include(u => u.Conversations)
             .ThenInclude(c => c.Participants)
             .Include(u => u.Friends)
             .Include(u => u.ReceivedFriendRequests)
             .Include(u => u.SentFriendRequests)
-            .SingleOrDefault(u => u.Id == userId);
+            .FirstOrDefaultAsync(u => u.Id == userId);
 
         if (user is null)
         {
@@ -74,8 +74,10 @@ public class NotificationHub(DbbContext db) : Hub<INotificationClient>
         return base.OnDisconnectedAsync(exception);
     }
 
-    public async Task AddUserToGroup(Guid groupId)
+    public static async Task AddToGroupAsync(IHubContext<NotificationHub, INotificationClient> hubContext, Guid userId, Guid groupId)
     {
-        await Groups.AddToGroupAsync(Context.ConnectionId, groupId.ToString());
+        if (ConnectedUsers.TryGetValue(userId, out var connectionIds))
+            foreach (var connectionId in connectionIds)
+                await hubContext.Groups.AddToGroupAsync(connectionId, groupId.ToString());
     }
 }

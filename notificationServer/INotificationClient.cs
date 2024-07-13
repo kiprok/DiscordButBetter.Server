@@ -7,9 +7,24 @@ public interface INotificationClient
 {
     Task InitializedUser();
     
-    Task ReceiveMessage(MessageResponse message);
+    // Messages
+    Task NewMessage(MessageResponse message);
+    Task MessageEdited(MessageResponse message);
+    Task MessageDeleted(Guid message);
     
-    Task ReceiveFriendRequest(FriendRequestResponse request);
-    Task ReceiveFriendAdded(FriendRequestResponse request);
+    // Friend Requests
+    Task FriendRequest(FriendRequestResponse request);
+    Task FriendRequestAccepted(FriendRequestResponse request);
+    Task FriendRequestDeclined(FriendRequestResponse request);
+    Task FriendRequestCanceled(FriendRequestResponse request);
+    
+    // Conversations
+    Task AddedToConversation(ConversationResponse conversation);
+    Task RemovedFromConversation(ConversationResponse conversation);
+    Task ConversationInfoChanged(ConversationResponse conversation);
+    
+    // Users
+    Task FriendRemoved(Guid friendId);
+    Task UserInfoChanged(UserResponse user);
     
 }

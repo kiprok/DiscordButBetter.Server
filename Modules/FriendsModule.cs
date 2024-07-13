@@ -60,13 +60,20 @@ public class FriendsModule : CarterModule
                 targetUser.Friends.Add(currentUser);
                 db.FriendRequests.Remove(req);
                 await db.SaveChangesAsync();
+                await notificationService.SendFriendRequestAcceptedNotification(req.ToResponse());
                 return TypedResults.Ok();
             case RequestType.Decline:
-            case RequestType.Cancel:
                 if (req == null) return TypedResults.NotFound();
-
                 db.FriendRequests.Remove(req);
                 await db.SaveChangesAsync();
+                await notificationService.SendFriendRequestDeclinedNotification(req.ToResponse());
+
+                return TypedResults.Ok();
+            case RequestType.Cancel:
+                if (req == null) return TypedResults.NotFound();
+                db.FriendRequests.Remove(req);
+                await db.SaveChangesAsync();
+                await notificationService.SendFriendRequestCanceledNotification(req.ToResponse());
                 return TypedResults.Ok();
             default:
                 return TypedResults.BadRequest();
@@ -81,19 +88,24 @@ public class FriendsModule : CarterModule
         return TypedResults.Ok(requests.Select(r => r.ToResponse()).ToList());
     }
 
-    private Results<Ok, NotFound> RemoveFriendForUser(DbbContext db, ClaimsPrincipal claim, Guid friendId)
+    private async Task<Results<Ok, NotFound>> RemoveFriendForUser(
+        DbbContext db, 
+        ClaimsPrincipal claim, 
+        Guid friendId,
+        INotificationService notificationService)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
 
-        var user = db.Users.Include(u => u.Friends).FirstOrDefault(u => u.Id == userId);
+        var user = await db.Users.Include(u => u.Friends).FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null) return TypedResults.NotFound();
 
-        var friend = db.Users.Include(u => u.Friends).FirstOrDefault(u => u.Id == friendId);
+        var friend = await db.Users.Include(u => u.Friends).FirstOrDefaultAsync(u => u.Id == friendId);
         if (friend == null) return TypedResults.NotFound();
-
+        
         user.Friends.Remove(friend);
         friend.Friends.Remove(user);
-        db.SaveChanges();
+        await db.SaveChangesAsync();
+        await notificationService.SendFriendRemovedNotification(userId, friendId);
         return TypedResults.Ok();
     }
 

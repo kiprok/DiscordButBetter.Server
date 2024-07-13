@@ -8,6 +8,7 @@ using DiscordButBetter.Server.Database.Models;
 using DiscordButBetter.Server.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace DiscordButBetter.Server.Modules;
 
@@ -41,8 +42,11 @@ public class MessagesModule : CarterModule
         app.MapGet("/conversation/{conversationId:guid}/search", SearchForMessages);
     }
 
-    private async Task<Results<Ok<MessageResponse>, NotFound>> UpdateMessageById(DbbContext db, Guid messageId,
-        [FromBody] UpdateChatMessageRequest request)
+    private async Task<Results<Ok<MessageResponse>, NotFound>> UpdateMessageById(
+        DbbContext db,
+        Guid messageId,
+        [FromBody] UpdateChatMessageRequest request,
+        INotificationService notificationService)
     {
         var message = db.Messages.FirstOrDefault(m => m.Id == messageId);
         if (message == null) return TypedResults.NotFound();
@@ -52,17 +56,23 @@ public class MessagesModule : CarterModule
 
         await db.SaveChangesAsync();
 
-        return TypedResults.Ok(message.ToMessageResponse());
+        var response = message.ToMessageResponse();
+        
+        await notificationService.SendMessageEditedNotification(response);
+        
+        return TypedResults.Ok(response);
     }
 
-    private async Task<Results<Ok, NotFound>> DeleteMessageById(DbbContext db, Guid messageId)
+    private async Task<Results<Ok, NotFound>> DeleteMessageById(DbbContext db, Guid messageId, INotificationService notificationService)
     {
         var message = db.Messages.FirstOrDefault(m => m.Id == messageId);
         if (message == null) return TypedResults.NotFound();
 
         db.Messages.Remove(message);
         await db.SaveChangesAsync();
-
+        
+        await notificationService.SendMessageDeletedNotification(message.ToMessageResponse());
+        
         return TypedResults.Ok();
     }
 
@@ -87,9 +97,9 @@ public class MessagesModule : CarterModule
         return TypedResults.Ok(response);
     }
 
-    private Results<Ok<MessageResponse>, NotFound> GetMessageById(DbbContext db, Guid messageId)
+    private async Task<Results<Ok<MessageResponse>, NotFound>> GetMessageById(DbbContext db, Guid messageId)
     {
-        var message = db.Messages.FirstOrDefault(m => m.Id == messageId);
+        var message = await db.Messages.FindAsync(messageId);
         if (message == null) return TypedResults.NotFound();
 
         return TypedResults.Ok(message.ToMessageResponse());
