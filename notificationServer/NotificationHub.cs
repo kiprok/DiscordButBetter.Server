@@ -9,7 +9,7 @@ namespace DiscordButBetter.Server.notificationServer;
 
 public class NotificationHub(DbbContext db) : Hub<INotificationClient>
 {
-    public static ConcurrentDictionary<Guid,List<string>> ConnectedUsers = new();
+    public static ConcurrentDictionary<Guid,ConcurrentList<string>> ConnectedUsers = new();
 
     public override async Task OnConnectedAsync()
     {
@@ -29,8 +29,12 @@ public class NotificationHub(DbbContext db) : Hub<INotificationClient>
             Context.Abort();
             return;
         }
+
+        user.Status = 1;
+        user.Online = true;
+        await db.SaveChangesAsync();
         
-        ConnectedUsers.AddOrUpdate(userId, new List<string> {Context.ConnectionId}, (_, list) =>
+        ConnectedUsers.AddOrUpdate(userId, new ConcurrentList<string>(Context.ConnectionId), (_, list) =>
         {
             list.Add(Context.ConnectionId);
             return list;
@@ -59,6 +63,8 @@ public class NotificationHub(DbbContext db) : Hub<INotificationClient>
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, friendRequest.Id.ToString());
         }
+        
+        await Clients.Group(userId.ToString()).UserInfoChanged(user.ToUserResponse());
 
         await Clients.Caller.InitializedUser();
     }
@@ -66,25 +72,34 @@ public class NotificationHub(DbbContext db) : Hub<INotificationClient>
     public override Task OnDisconnectedAsync(Exception? exception)
     {
         var userId = Guid.Parse(Context.User?.Claims.First().Value!);
-        ConnectedUsers.AddOrUpdate(userId, new List<string>(), (_, list) =>
+        ConnectedUsers.AddOrUpdate(userId, new ConcurrentList<string>(), (_, list) =>
         {
             list.Remove(Context.ConnectionId);
+            if (list.Count == 0)
+            {
+                var user =db.Users.Find(userId);
+                if(user is null) return list;
+                user.Status = 0;
+                user.Online = false;
+                db.SaveChanges();
+                Clients.Group(userId.ToString()).UserInfoChanged(user.ToUserResponse());
+            }
             return list;
         });
-        return base.OnDisconnectedAsync(exception);
+        return Task.CompletedTask;
     }
 
     public static async Task AddToGroupAsync(IHubContext<NotificationHub, INotificationClient> hubContext, Guid userId, Guid groupId)
     {
         if (ConnectedUsers.TryGetValue(userId, out var connectionIds))
-            foreach (var connectionId in connectionIds)
+            foreach (var connectionId in connectionIds.ToList())
                 await hubContext.Groups.AddToGroupAsync(connectionId, groupId.ToString());
     }
     
     public static async Task RemoveFromGroupAsync(IHubContext<NotificationHub, INotificationClient> hubContext, Guid userId, Guid groupId)
     {
         if (ConnectedUsers.TryGetValue(userId, out var connectionIds))
-            foreach (var connectionId in connectionIds)
+            foreach (var connectionId in connectionIds.ToList())
                 await hubContext.Groups.RemoveFromGroupAsync(connectionId, groupId.ToString());
     }
 }
