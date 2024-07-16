@@ -144,9 +144,11 @@ public class ConversationsModule : CarterModule
         return TypedResults.Ok(response);
     }
 
-    private Results<Ok<ConversationResponse>, NotFound> GetConversationById(DbbContext db, Guid conversationId)
+    private async Task<Results<Ok<ConversationResponse>, NotFound>> GetConversationById(DbbContext db, Guid conversationId)
     {
-        var conversation = db.Conversations.FirstOrDefault(c => c.Id == conversationId);
+        var conversation = await db.Conversations
+            .Include(c => c.Participants)
+            .FirstOrDefaultAsync(c => c.Id == conversationId);
         if (conversation == null) return TypedResults.NotFound();
 
         return TypedResults.Ok(conversation.ToConversationResponse());
@@ -156,7 +158,8 @@ public class ConversationsModule : CarterModule
         ClaimsPrincipal claim)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
-        var user = db.Users.Include(u => u.VisibleConversations)
+        var user = db.Users
+            .Include(u => u.VisibleConversations)
             .ThenInclude(c => c.Participants)
             .FirstOrDefault(u => u.Id == userId);
         if (user == null) return TypedResults.NotFound();

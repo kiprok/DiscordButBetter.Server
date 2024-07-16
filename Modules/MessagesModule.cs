@@ -48,7 +48,7 @@ public class MessagesModule : CarterModule
         [FromBody] UpdateChatMessageRequest request,
         INotificationService notificationService)
     {
-        var message = db.Messages.FirstOrDefault(m => m.Id == messageId);
+        var message = await db.Messages.FindAsync(messageId);
         if (message == null) return TypedResults.NotFound();
 
         message.Content = request.Content;
@@ -65,7 +65,7 @@ public class MessagesModule : CarterModule
 
     private async Task<Results<Ok, NotFound>> DeleteMessageById(DbbContext db, Guid messageId, INotificationService notificationService)
     {
-        var message = db.Messages.FirstOrDefault(m => m.Id == messageId);
+        var message = await db.Messages.FindAsync(messageId);
         if (message == null) return TypedResults.NotFound();
 
         db.Messages.Remove(message);

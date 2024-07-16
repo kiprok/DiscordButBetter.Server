@@ -50,7 +50,7 @@ public class UsersModule : CarterModule
         INotificationService notificationService)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
-        var user = db.Users.FirstOrDefault(u => u.Id == userId);
+        var user = await db.Users.FindAsync(userId);
         if (user == null) return TypedResults.NotFound();
         if (request.Password != null) user.Password = userService.GeneratePasswordHash(request.Password);
         if (request.ProfilePicture != null) user.ProfilePicture = request.ProfilePicture;
@@ -62,9 +62,9 @@ public class UsersModule : CarterModule
         return TypedResults.Ok(user.ToUserResponse());
     }
 
-    private Results<Ok<UserResponse>, NotFound> GetUserById(DbbContext db, Guid id)
+    private async Task<Results<Ok<UserResponse>, NotFound>> GetUserById(DbbContext db, Guid id)
     {
-        var user = db.Users.FirstOrDefault(u => u.Id == id);
+        var user = await db.Users.FindAsync(id);
         if (user == null) return TypedResults.NotFound();
 
         return TypedResults.Ok(user.ToUserResponse());
