@@ -42,9 +42,12 @@ public class UsersModule : CarterModule
         return TypedResults.Ok(users.Select(u => u.ToUserResponse()).ToList());
     }
 
-    private async Task<Results<Ok<UserResponse>, NotFound>> UpdateUser(DbbContext db, ClaimsPrincipal claim,
-        UpdateUserInfoRequest request,
-        IUserService userService)
+    private async Task<Results<Ok<UserResponse>, NotFound>> UpdateUser(
+        DbbContext db, 
+        ClaimsPrincipal claim,
+        [FromBody]UpdateUserInfoRequest request,
+        IUserService userService,
+        INotificationService notificationService)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
         var user = db.Users.FirstOrDefault(u => u.Id == userId);
@@ -55,6 +58,7 @@ public class UsersModule : CarterModule
         if (request.StatusMessage != null) user.StatusMessage = request.StatusMessage;
         if (request.Biography != null) user.Biography = request.Biography;
         await db.SaveChangesAsync();
+        await notificationService.UserInfoChanged(user.ToUserResponse());
         return TypedResults.Ok(user.ToUserResponse());
     }
 

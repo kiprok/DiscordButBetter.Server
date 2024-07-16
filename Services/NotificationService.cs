@@ -26,6 +26,7 @@ public interface INotificationService
     
     // Users
     Task SendFriendRemoved(Guid userId, Guid friendId);
+    Task UserInfoChanged(UserResponse user);
     
 }
 
@@ -121,6 +122,11 @@ public class NotificationService
     {
         await hubContext.Clients.User(userId.ToString()).FriendRemoved(friendId);
         await hubContext.Clients.User(friendId.ToString()).FriendRemoved(userId);
+    }
+    
+    public async Task UserInfoChanged(UserResponse user)
+    {
+        await hubContext.Clients.Group(user.UserId.ToString()).UserInfoChanged(user);
     }
     
 }
