@@ -51,6 +51,10 @@ app.UseAuthorization();
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
+app.UseSpa(option =>
+{
+    option.Options.SourcePath = "wwwroot";
+});
 
 app.MapCarter();
 
