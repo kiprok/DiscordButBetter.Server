@@ -29,8 +29,8 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 
 var awsAccessKey = builder.Configuration["AWS_ACCESS_KEY"];
 var awsSecretKey = builder.Configuration["AWS_SECRET_KEY"];
-Console.WriteLine(awsAccessKey);
-Console.WriteLine(awsSecretKey);
+Console.WriteLine(awsAccessKey!.Length);
+Console.WriteLine(awsSecretKey!.Length);
 var credentials = new BasicAWSCredentials(awsAccessKey, awsSecretKey);
 builder.Services.AddAWSService<IAmazonS3>(new AWSOptions
 {
