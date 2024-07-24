@@ -31,6 +31,9 @@ public class MediaModule : CarterModule
         IAmazonS3 s3Client,
         ClaimsPrincipal claim)
     {
+        if(rq.FileSize > 5_000_000) return TypedResults.BadRequest();
+        if(!rq.FileType.StartsWith("image/")) return TypedResults.BadRequest();
+        
         var userId = Guid.Parse(claim.Claims.First().Value);
         var fileExtension = Path.GetExtension(rq.FileName);
         var randomFileName = RandomNumberGenerator.GetString(Chars, 40);
@@ -41,7 +44,11 @@ public class MediaModule : CarterModule
             Key = newFileName,
             Expires = DateTime.Now.AddMinutes(5),
             Verb = HttpVerb.PUT,
-            ContentType = rq.FileType
+            ContentType = rq.FileType,
+            Headers =
+            {
+                ContentLength = rq.FileSize
+            }
         };
 
         var url = await s3Client.GetPreSignedURLAsync(presign);
