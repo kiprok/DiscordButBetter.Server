@@ -47,7 +47,11 @@ public class AuthenticationModule : CarterModule
     private async Task<Results<Ok<SessionResponse>, UnauthorizedHttpResult>> LoginUser([FromBody] LoginRequest request,
         IUserService userService, HttpContext context)
     {
-        var ip = context.Connection.RemoteIpAddress?.ToString();
+        
+        var ip = context.Request.Headers["X-Forwarded-For"].Count > 0 ? 
+            context.Request.Headers["X-Forwarded-For"].ToString() : 
+            context.Connection.RemoteIpAddress!.ToString();
+        
         var userAgent = context.Request.Headers["User-Agent"].ToString();
 
         var session = await userService.Authenticate(request.Username, request.Password, ip ?? "", userAgent);
