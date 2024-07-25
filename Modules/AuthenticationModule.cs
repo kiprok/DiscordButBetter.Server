@@ -52,6 +52,9 @@ public class AuthenticationModule : CarterModule
             context.Request.Headers["X-Forwarded-For"].ToString() : 
             context.Connection.RemoteIpAddress!.ToString();
         
+        if(context.Request.Headers.ContainsKey("CF-Connecting-IP"))
+            ip = context.Request.Headers["CF-Connecting-IP"].ToString();
+        
         var userAgent = context.Request.Headers["User-Agent"].ToString();
 
         var session = await userService.Authenticate(request.Username, request.Password, ip ?? "", userAgent);
