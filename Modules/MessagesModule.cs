@@ -86,6 +86,8 @@ public class MessagesModule : CarterModule
         var message = request.ToChatMessageModel();
         message.Id = Guid.NewGuid();
         message.SenderId = userId;
+        var conversation = await db.Conversations.FindAsync(message.ConversationId);
+        conversation!.LastMessageTime = message.SentAt;
 
         db.Messages.Add(message);
         await db.SaveChangesAsync();

@@ -13,6 +13,7 @@ public static class MapConversationModel
             ConversationName = conversation.ConversationName,
             ConversationType = conversation.ConversationType,
             ConversationPicture = conversation.ConversationPicture,
+            LastMessageTime = conversation.LastMessageTime,
             Participants = conversation.Participants.Select(c => c.Id).ToList()
         };
     }
