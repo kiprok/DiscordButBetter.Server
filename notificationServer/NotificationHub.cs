@@ -63,8 +63,14 @@ public class NotificationHub(DbbContext db) : Hub<INotificationClient>
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, friendRequest.Id.ToString());
         }
+
+        var response = new UserUpdateResponse
+        {
+            UserId = userId,
+            Status = user.Status
+        };
         
-        await Clients.Group(userId.ToString()).UserInfoChanged(user.ToUserResponse());
+        await Clients.Group(userId.ToString()).UserInfoChanged(response);
 
         await Clients.Caller.InitializedUser();
     }
@@ -82,7 +88,13 @@ public class NotificationHub(DbbContext db) : Hub<INotificationClient>
                 user.Status = 0;
                 user.Online = false;
                 db.SaveChanges();
-                Clients.Group(userId.ToString()).UserInfoChanged(user.ToUserResponse());
+                var response = new UserUpdateResponse
+                {
+                    UserId = userId,
+                    Status = user.Status
+                };
+        
+                Clients.Group(userId.ToString()).UserInfoChanged(response);
             }
             return list;
         });

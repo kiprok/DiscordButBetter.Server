@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Amazon;
 using Amazon.Extensions.NETCore.Setup;
 using Amazon.Runtime;
@@ -24,32 +25,39 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddAuthentication(AuthSchemeOptions.DefaultScheme)
     .AddScheme<AuthSchemeOptions, AuthHandler>(AuthSchemeOptions.DefaultScheme, options => { });
 builder.Services.AddAuthorization();
-builder.Services.AddSignalR();
+builder.Services.AddSignalR().AddJsonProtocol(options =>
+{
+    options.PayloadSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+});
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+});
 
-var awsAccessKey = builder.Configuration["AWS_ACCESS_KEY"]!;
-var awsSecretKey = builder.Configuration["AWS_SECRET_KEY"]!;
+var credentials = new BasicAWSCredentials(
+    builder.Configuration["AWS_ACCESS_KEY"], 
+    builder.Configuration["AWS_SECRET_KEY"]);
 
-var credentials = new BasicAWSCredentials(awsAccessKey, awsSecretKey);
 builder.Services.AddAWSService<IAmazonS3>(new AWSOptions
 {
     Credentials = credentials,
-
     DefaultClientConfig =
     {
-        ServiceURL = "https://1b7039981caabc1fc0f00dabaa35bc42.r2.cloudflarestorage.com"
+        ServiceURL = "https://1b7039981caabc1fc0f00dabaa35bc42.r2.cloudflarestorage.com",
     }
 });
+
 AWSConfigsS3.UseSignatureVersion4 = true;
 
-var db_host = builder.Configuration["DB_HOST"];
-var db_port = builder.Configuration["DB_PORT"];
-var db_name = builder.Configuration["DB_NAME"];
-var db_user = builder.Configuration["DB_USER"];
-var db_pass = builder.Configuration["DB_PASS"];
+var connectionString = string.Format("Server={0};Port={1};Database={2};Uid={3};Pwd={4};", 
+    builder.Configuration["DB_HOST"], 
+    builder.Configuration["DB_PORT"], 
+    builder.Configuration["DB_NAME"],
+    builder.Configuration["DB_USER"], 
+    builder.Configuration["DB_PASS"]);
 
-var connectionString = $"Server={db_host};Port={db_port};Database={db_name};Uid={db_user};Pwd={db_pass};";
-var serverVersion = new MariaDbServerVersion(new Version(10, 11, 5));
+var serverVersion = ServerVersion.AutoDetect(connectionString);
 builder.Services.AddDbContext<DbbContext>(options => { options.UseMySql(connectionString, serverVersion); });
 
 var app = builder.Build();

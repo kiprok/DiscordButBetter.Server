@@ -26,6 +26,6 @@ public interface INotificationClient
     
     // Users
     Task FriendRemoved(Guid friendId);
-    Task UserInfoChanged(UserResponse user);
+    Task UserInfoChanged(UserUpdateResponse user);
     
 }

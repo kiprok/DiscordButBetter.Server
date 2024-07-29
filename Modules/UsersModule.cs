@@ -42,7 +42,7 @@ public class UsersModule : CarterModule
         return TypedResults.Ok(users.Select(u => u.ToUserResponse()).ToList());
     }
 
-    private async Task<Results<Ok<UserResponse>, NotFound>> UpdateUser(
+    private async Task<Results<Ok<UserUpdateResponse>, NotFound>> UpdateUser(
         DbbContext db, 
         ClaimsPrincipal claim,
         [FromBody]UpdateUserInfoRequest request,
@@ -58,8 +58,16 @@ public class UsersModule : CarterModule
         if (request.StatusMessage != null) user.StatusMessage = request.StatusMessage;
         if (request.Biography != null) user.Biography = request.Biography;
         await db.SaveChangesAsync();
-        await notificationService.UserInfoChanged(user.ToUserResponse());
-        return TypedResults.Ok(user.ToUserResponse());
+        var response = new UserUpdateResponse
+        {
+            UserId = userId
+        };
+        if(request.ProfilePicture != null) response.ProfilePicture = request.ProfilePicture;
+        if(request.Status != null) response.Status = request.Status.Value;
+        if(request.StatusMessage != null) response.StatusMessage = request.StatusMessage;
+        if(request.Biography != null) response.Biography = request.Biography;
+        await notificationService.UserInfoChanged(response);
+        return TypedResults.Ok(response);
     }
 
     private async Task<Results<Ok<UserResponse>, NotFound>> GetUserById(DbbContext db, Guid id)
