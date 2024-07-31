@@ -52,7 +52,17 @@ public class DbbContext : DbContext
         modelBuilder.Entity<ChatMessageModel>()
             .HasIndex(m => new {m.SentAt , m.Content});
         
+        modelBuilder.Entity<ConversationModel>()
+            .Property(x => x.LastMessageTime)
+            .HasConversion(d => d, d => DateTime.SpecifyKind(d, DateTimeKind.Utc));
         
+        modelBuilder.Entity<ChatMessageModel>()
+            .Property(x => x.SentAt)
+            .HasConversion(m => m, m => DateTime.SpecifyKind(m, DateTimeKind.Utc));
+        
+        modelBuilder.Entity<UserModel>()
+            .Property(x => x.CreatedAt)
+            .HasConversion(u => u, u => DateTime.SpecifyKind(u, DateTimeKind.Utc));
 
     }
 }

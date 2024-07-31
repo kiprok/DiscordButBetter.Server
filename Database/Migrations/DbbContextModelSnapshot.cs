@@ -53,7 +53,7 @@ namespace DiscordButBetter.Server.Database.Migrations
 
                     b.HasIndex("SentAt", "Content");
 
-                    b.ToTable("Messages");
+                    b.ToTable("Messages", (string)null);
                 });
 
             modelBuilder.Entity("DiscordButBetter.Server.Database.Models.ConversationModel", b =>
@@ -78,7 +78,7 @@ namespace DiscordButBetter.Server.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Conversations");
+                    b.ToTable("Conversations", (string)null);
                 });
 
             modelBuilder.Entity("DiscordButBetter.Server.Database.Models.FriendRequestModel", b =>
@@ -99,7 +99,7 @@ namespace DiscordButBetter.Server.Database.Migrations
 
                     b.HasIndex("SenderId");
 
-                    b.ToTable("FriendRequests");
+                    b.ToTable("FriendRequests", (string)null);
                 });
 
             modelBuilder.Entity("DiscordButBetter.Server.Database.Models.SessionModel", b =>
@@ -127,7 +127,7 @@ namespace DiscordButBetter.Server.Database.Migrations
 
                     b.HasIndex("userId");
 
-                    b.ToTable("Sessions");
+                    b.ToTable("Sessions", (string)null);
                 });
 
             modelBuilder.Entity("DiscordButBetter.Server.Database.Models.UserModel", b =>
@@ -169,7 +169,7 @@ namespace DiscordButBetter.Server.Database.Migrations
 
                     b.HasIndex("Username");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("Friends", b =>
@@ -184,7 +184,7 @@ namespace DiscordButBetter.Server.Database.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Friends");
+                    b.ToTable("Friends", (string)null);
                 });
 
             modelBuilder.Entity("conversationParticipants", b =>
@@ -199,7 +199,7 @@ namespace DiscordButBetter.Server.Database.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("conversationParticipants");
+                    b.ToTable("conversationParticipants", (string)null);
                 });
 
             modelBuilder.Entity("conversationParticipantsVisible", b =>
@@ -214,7 +214,7 @@ namespace DiscordButBetter.Server.Database.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("conversationParticipantsVisible");
+                    b.ToTable("conversationParticipantsVisible", (string)null);
                 });
 
             modelBuilder.Entity("DiscordButBetter.Server.Database.Models.ChatMessageModel", b =>
