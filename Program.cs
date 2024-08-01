@@ -5,6 +5,7 @@ using Amazon.Runtime;
 using Amazon.S3;
 using Carter;
 using DiscordButBetter.Server.Authentication;
+using DiscordButBetter.Server.Background;
 using DiscordButBetter.Server.Database;
 using DiscordButBetter.Server.notificationServer;
 using DiscordButBetter.Server.Services;
@@ -20,6 +21,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddCarter();
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient();
+builder.Services.AddLogging();
 builder.Services.AddSingleton<IUserIdProvider, UserIdProvider>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddAuthentication(AuthSchemeOptions.DefaultScheme)
@@ -36,7 +38,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 var credentials = new BasicAWSCredentials(
-    builder.Configuration["AWS_ACCESS_KEY"], 
+    builder.Configuration["AWS_ACCESS_KEY"],
     builder.Configuration["AWS_SECRET_KEY"]);
 
 builder.Services.AddAWSService<IAmazonS3>(new AWSOptions
@@ -44,21 +46,22 @@ builder.Services.AddAWSService<IAmazonS3>(new AWSOptions
     Credentials = credentials,
     DefaultClientConfig =
     {
-        ServiceURL = "https://1b7039981caabc1fc0f00dabaa35bc42.r2.cloudflarestorage.com",
+        ServiceURL = "https://1b7039981caabc1fc0f00dabaa35bc42.r2.cloudflarestorage.com"
     }
 });
 
 AWSConfigsS3.UseSignatureVersion4 = true;
 
-var connectionString = string.Format("Server={0};Port={1};Database={2};Uid={3};Pwd={4};", 
-    builder.Configuration["DB_HOST"], 
-    builder.Configuration["DB_PORT"], 
+var connectionString = string.Format("Server={0};Port={1};Database={2};Uid={3};Pwd={4};",
+    builder.Configuration["DB_HOST"],
+    builder.Configuration["DB_PORT"],
     builder.Configuration["DB_NAME"],
-    builder.Configuration["DB_USER"], 
+    builder.Configuration["DB_USER"],
     builder.Configuration["DB_PASS"]);
 
 var serverVersion = ServerVersion.AutoDetect(connectionString);
-builder.Services.AddDbContext<DbbContext>(options => { options.UseMySql(connectionString, serverVersion); });
+builder.Services.AddDbContextFactory<DbbContext>(options => { options.UseMySql(connectionString, serverVersion); });
+builder.Services.AddHostedService<HeartBeatService>();
 
 var app = builder.Build();
 

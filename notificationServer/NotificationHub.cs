@@ -1,21 +1,24 @@
 ﻿using System.Collections.Concurrent;
+using DiscordButBetter.Server.Background;
 using DiscordButBetter.Server.Contracts.Mappers;
 using DiscordButBetter.Server.Contracts.Responses;
 using DiscordButBetter.Server.Database;
+using DiscordButBetter.Server.Database.Models;
+using DiscordButBetter.Server.Utilities;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace DiscordButBetter.Server.notificationServer;
 
-public class NotificationHub(DbbContext db) : Hub<INotificationClient>
+public class NotificationHub(DbbContext db, ILogger<NotificationHub> logger) : Hub<INotificationClient>
 {
-    public static ConcurrentDictionary<Guid,ConcurrentList<string>> ConnectedUsers = new();
+    public static ConcurrentDictionary<Guid, ConcurrentList<string>> ConnectedUsers = new();
 
     public override async Task OnConnectedAsync()
     {
         Console.WriteLine($"userId: {Context.User?.Claims.First().Value}");
         var userId = Guid.Parse(Context.User?.Claims.First().Value!);
-        
+
         var user = await db.Users
             .Include(u => u.Conversations)
             .ThenInclude(c => c.Participants)
@@ -30,10 +33,18 @@ public class NotificationHub(DbbContext db) : Hub<INotificationClient>
             return;
         }
 
+        var connection = new ConnectionModel
+        {
+            Id = Context.ConnectionId,
+            UserId = userId,
+            ServerId = HeartBeatService.ServiceId
+        };
+        db.Connections.Add(connection);
+
         user.Status = 1;
         user.Online = true;
         await db.SaveChangesAsync();
-        
+
         ConnectedUsers.AddOrUpdate(userId, new ConcurrentList<string>(Context.ConnectionId), (_, list) =>
         {
             list.Add(Context.ConnectionId);
@@ -44,71 +55,74 @@ public class NotificationHub(DbbContext db) : Hub<INotificationClient>
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, conversation.Id.ToString());
             foreach (var participant in conversation.Participants)
-            {
                 await Groups.AddToGroupAsync(Context.ConnectionId, participant.Id.ToString());
-            }
         }
 
-        foreach (var friend in user.Friends)
-        {
-            await Groups.AddToGroupAsync(Context.ConnectionId, friend.Id.ToString());
-        }
+        foreach (var friend in user.Friends) await Groups.AddToGroupAsync(Context.ConnectionId, friend.Id.ToString());
 
         foreach (var friendRequest in user.ReceivedFriendRequests)
-        {
             await Groups.AddToGroupAsync(Context.ConnectionId, friendRequest.Id.ToString());
-        }
-        
+
         foreach (var friendRequest in user.SentFriendRequests)
-        {
             await Groups.AddToGroupAsync(Context.ConnectionId, friendRequest.Id.ToString());
-        }
 
         var response = new UserUpdateResponse
         {
             UserId = userId,
             Status = user.Status
         };
-        
+
         await Clients.Group(userId.ToString()).UserInfoChanged(response);
 
         await Clients.Caller.InitializedUser();
     }
 
-    public override Task OnDisconnectedAsync(Exception? exception)
+    public override async Task OnDisconnectedAsync(Exception? exception)
     {
         var userId = Guid.Parse(Context.User?.Claims.First().Value!);
+
+        var connection = await db.Connections.FindAsync(Context.ConnectionId);
+        if (connection is not null) db.Connections.Remove(connection);
+        await db.SaveChangesAsync();
+
+        var connections = db.Connections
+            .Count(c => c.UserId == userId);
+
+        if (connections == 0)
+        {
+            var user = await db.Users.FindAsync(userId);
+            if (user is not null)
+                if (user.Online)
+                {
+                    user.Online = false;
+                    user.Status = 0;
+                    var userUpdate = new UserUpdateResponse
+                    {
+                        UserId = userId,
+                        Status = 0
+                    };
+                    await Clients.Group(userId.ToString()).UserInfoChanged(userUpdate);
+                    await db.SaveChangesAsync();
+                }
+        }
+
         ConnectedUsers.AddOrUpdate(userId, new ConcurrentList<string>(), (_, list) =>
         {
             list.Remove(Context.ConnectionId);
-            if (list.Count == 0)
-            {
-                var user =db.Users.Find(userId);
-                if(user is null) return list;
-                user.Status = 0;
-                user.Online = false;
-                db.SaveChanges();
-                var response = new UserUpdateResponse
-                {
-                    UserId = userId,
-                    Status = user.Status
-                };
-        
-                Clients.Group(userId.ToString()).UserInfoChanged(response);
-            }
             return list;
         });
-        return Task.CompletedTask;
     }
 
-    public static async Task AddToGroupAsync(IHubContext<NotificationHub, INotificationClient> hubContext, Guid userId, Guid groupId)
+    public static async Task AddToGroupAsync(IHubContext<NotificationHub, INotificationClient> hubContext, Guid userId,
+        Guid groupId)
     {
         if (ConnectedUsers.TryGetValue(userId, out var connectionIds))
             foreach (var connectionId in connectionIds.ToList())
                 await hubContext.Groups.AddToGroupAsync(connectionId, groupId.ToString());
     }
-    
-    public static async Task RemoveFromGroupAsync(IHubContext<NotificationHub, INotificationClient> hubContext, Guid userId, Guid groupId)
+
+    public static async Task RemoveFromGroupAsync(IHubContext<NotificationHub, INotificationClient> hubContext,
+        Guid userId, Guid groupId)
     {
         if (ConnectedUsers.TryGetValue(userId, out var connectionIds))
             foreach (var connectionId in connectionIds.ToList())
