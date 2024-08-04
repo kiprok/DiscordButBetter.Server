@@ -9,6 +9,7 @@ using DiscordButBetter.Server.Background;
 using DiscordButBetter.Server.Database;
 using DiscordButBetter.Server.notificationServer;
 using DiscordButBetter.Server.Services;
+using MassTransit;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -35,6 +36,15 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+});
+
+builder.Services.AddMassTransit(x =>
+{
+    x.AddConsumers(typeof(Program).Assembly);
+    x.UsingInMemory((context, cfg) =>
+    {
+        cfg.ConfigureEndpoints(context);
+    });
 });
 
 var credentials = new BasicAWSCredentials(

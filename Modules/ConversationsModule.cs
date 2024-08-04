@@ -193,7 +193,9 @@ public class ConversationsModule : CarterModule
         ClaimsPrincipal claim)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
-        var conversations = db.Users.Include(u => u.Conversations)
+        var conversations = db.Users
+            .AsSplitQuery()
+            .Include(u => u.Conversations)
             .ThenInclude(c => c.Participants)
             .FirstOrDefault(u => u.Id == userId)
             ?.Conversations;

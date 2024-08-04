@@ -16,10 +16,12 @@ public class NotificationHub(DbbContext db, ILogger<NotificationHub> logger) : H
 
     public override async Task OnConnectedAsync()
     {
-        Console.WriteLine($"userId: {Context.User?.Claims.First().Value}");
         var userId = Guid.Parse(Context.User?.Claims.First().Value!);
 
+        logger.LogInformation("User {UserId} connected with connectionId {connectionId}", userId, Context.ConnectionId);
+
         var user = await db.Users
+            .AsSplitQuery()
             .Include(u => u.Conversations)
             .ThenInclude(c => c.Participants)
             .Include(u => u.Friends)
@@ -80,6 +82,8 @@ public class NotificationHub(DbbContext db, ILogger<NotificationHub> logger) : H
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         var userId = Guid.Parse(Context.User?.Claims.First().Value!);
+        
+        logger.LogInformation("User {UserId} disconnected with connectionId {connectionId}", userId, Context.ConnectionId);
 
         var connection = await db.Connections.FindAsync(Context.ConnectionId);
         if (connection is not null) db.Connections.Remove(connection);
