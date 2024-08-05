@@ -5,6 +5,7 @@ using DiscordButBetter.Server.Contracts.Requests;
 using DiscordButBetter.Server.Contracts.Responses;
 using DiscordButBetter.Server.Database;
 using DiscordButBetter.Server.Services;
+using MassTransit;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -43,11 +44,11 @@ public class UsersModule : CarterModule
     }
 
     private async Task<Results<Ok<UserUpdateResponse>, NotFound>> UpdateUser(
-        DbbContext db, 
+        DbbContext db,
         ClaimsPrincipal claim,
-        [FromBody]UpdateUserInfoRequest request,
+        [FromBody] UpdateUserInfoRequest request,
         IUserService userService,
-        INotificationService notificationService)
+        IBus bus)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
         var user = await db.Users.FindAsync(userId);
@@ -58,15 +59,17 @@ public class UsersModule : CarterModule
         if (request.StatusMessage != null) user.StatusMessage = request.StatusMessage;
         if (request.Biography != null) user.Biography = request.Biography;
         await db.SaveChangesAsync();
+
         var response = new UserUpdateResponse
         {
             UserId = userId
         };
-        if(request.ProfilePicture != null) response.ProfilePicture = request.ProfilePicture;
-        if(request.Status != null) response.Status = request.Status.Value;
-        if(request.StatusMessage != null) response.StatusMessage = request.StatusMessage;
-        if(request.Biography != null) response.Biography = request.Biography;
-        await notificationService.UserInfoChanged(response);
+        if (request.ProfilePicture != null) response.ProfilePicture = request.ProfilePicture;
+        if (request.Status != null) response.Status = request.Status.Value;
+        if (request.StatusMessage != null) response.StatusMessage = request.StatusMessage;
+        if (request.Biography != null) response.Biography = request.Biography;
+
+        await bus.Publish(response.ToUserInfoChangedMessage());
         return TypedResults.Ok(response);
     }
 

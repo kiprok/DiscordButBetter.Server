@@ -72,4 +72,5 @@ public static class MapConversationModel
             Participants = conversation.Participants.Select(c => c.Id).ToList()
         };
     }
+    
 }

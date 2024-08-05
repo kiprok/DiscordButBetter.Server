@@ -8,5 +8,5 @@ public class AddedToConversationMessage
     public byte ConversationType { get; set; }
     public string ConversationPicture { get; set; }
     public DateTime LastMessageTime { get; set; }
-    public List<Guid>? Participants { get; set; }
+    public List<Guid> Participants { get; set; }
 }

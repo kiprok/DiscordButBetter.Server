@@ -6,6 +6,7 @@ using DiscordButBetter.Server.Contracts.Responses;
 using DiscordButBetter.Server.Database;
 using DiscordButBetter.Server.Database.Models;
 using DiscordButBetter.Server.Services;
+using MassTransit;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -42,7 +43,7 @@ public class ConversationsModule : CarterModule
         Guid conversationId,
         [FromBody] UpdateConversationRequest request,
         ClaimsPrincipal claim,
-        INotificationService notificationService)
+        IBus bus)
     {
         var conversation = db.Conversations.Include(c => c.Participants)
             .FirstOrDefault(c => c.Id == conversationId);
@@ -56,9 +57,9 @@ public class ConversationsModule : CarterModule
             conversation.Participants.RemoveAll(u => request.ParticipantsToRemove.Contains(u.Id));
 
         await db.SaveChangesAsync();
-        
-        await notificationService.ConversationInfoChanged(conversation.ToConversationResponse());
-        
+
+        await bus.Publish(conversation.ToChangedConversationMessage());
+
         return TypedResults.Ok(conversation.ToConversationResponse());
     }
 
@@ -66,18 +67,18 @@ public class ConversationsModule : CarterModule
         DbbContext db,
         Guid conversationId,
         ClaimsPrincipal claim,
-        INotificationService notificationService)
+        IBus bus)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
-        
+
         var user = db.Users
             .Include(u => u.VisibleConversations)
             .FirstOrDefault(u => u.Id == userId);
-        
+
         var conversation = db.Conversations
             .Include(c => c.Participants)
             .FirstOrDefault(c => c.Id == conversationId);
-        
+
         if (conversation == null || user == null) return TypedResults.NotFound();
 
         if (conversation.Participants.FirstOrDefault(u => u.Id == userId) == null) return TypedResults.NotFound();
@@ -93,8 +94,8 @@ public class ConversationsModule : CarterModule
         }
 
         await db.SaveChangesAsync();
-        
-        await notificationService.RemovedFromConversation(conversation.ToConversationResponse(), userId);
+
+        await bus.Publish(conversation.ToRemovedFromConversationMessage(userId));
         return TypedResults.Ok();
     }
 
@@ -102,7 +103,7 @@ public class ConversationsModule : CarterModule
         DbbContext db,
         [FromBody] CreateConversationRequest request,
         ClaimsPrincipal claim,
-        INotificationService notificationService)
+        IBus bus)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
         if (request.ConversationType == 0)
@@ -139,12 +140,13 @@ public class ConversationsModule : CarterModule
         await db.SaveChangesAsync();
 
         var response = conversation.ToConversationResponse();
-        await notificationService.CreatedNewConversation(response);
-        
+        await bus.Publish(conversation.ToNewConversationMessage());
+
         return TypedResults.Ok(response);
     }
 
-    private async Task<Results<Ok<ConversationResponse>, NotFound>> GetConversationById(DbbContext db, Guid conversationId)
+    private async Task<Results<Ok<ConversationResponse>, NotFound>> GetConversationById(DbbContext db,
+        Guid conversationId)
     {
         var conversation = await db.Conversations
             .Include(c => c.Participants)

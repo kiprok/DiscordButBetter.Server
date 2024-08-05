@@ -74,7 +74,7 @@ public class NotificationHub(DbbContext db, ILogger<NotificationHub> logger) : H
             Status = user.Status
         };
 
-        await Clients.Group(userId.ToString()).UserInfoChanged(response);
+        //await Clients.Group(userId.ToString()).UserInfoChanged(response);
 
         await Clients.Caller.InitializedUser();
     }
@@ -82,8 +82,9 @@ public class NotificationHub(DbbContext db, ILogger<NotificationHub> logger) : H
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         var userId = Guid.Parse(Context.User?.Claims.First().Value!);
-        
-        logger.LogInformation("User {UserId} disconnected with connectionId {connectionId}", userId, Context.ConnectionId);
+
+        logger.LogInformation("User {UserId} disconnected with connectionId {connectionId}", userId,
+            Context.ConnectionId);
 
         var connection = await db.Connections.FindAsync(Context.ConnectionId);
         if (connection is not null) db.Connections.Remove(connection);
@@ -105,7 +106,7 @@ public class NotificationHub(DbbContext db, ILogger<NotificationHub> logger) : H
                         UserId = userId,
                         Status = 0
                     };
-                    await Clients.Group(userId.ToString()).UserInfoChanged(userUpdate);
+                    //await Clients.Group(userId.ToString()).UserInfoChanged(userUpdate);
                     await db.SaveChangesAsync();
                 }
         }

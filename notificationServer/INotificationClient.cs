@@ -1,31 +1,30 @@
-﻿using System.Text.Json.Nodes;
-using DiscordButBetter.Server.Contracts.Responses;
+﻿using DiscordButBetter.Server.Contracts.Messages;
+using DiscordButBetter.Server.Contracts.Messages.Users;
 
 namespace DiscordButBetter.Server.notificationServer;
 
 public interface INotificationClient
 {
     Task InitializedUser();
-    
+
     // Messages
-    Task NewMessage(MessageResponse message);
-    Task MessageEdited(MessageResponse message);
+    Task NewMessage(SendChatMessageMessage message);
+    Task MessageEdited(EditChatMessageMessage message);
     Task MessageDeleted(Guid message);
-    
+
     // Friend Requests
-    Task FriendRequest(FriendRequestResponse request);
-    Task FriendRequestAccepted(FriendRequestResponse request);
-    Task FriendRequestDeclined(FriendRequestResponse request);
-    Task FriendRequestCanceled(FriendRequestResponse request);
-    
+    Task FriendRequest(FriendRequestSendMessage request);
+    Task FriendRequestAccepted(FriendRequestAcceptedMessage request);
+    Task FriendRequestDeclined(FriendRequestDeclinedMessage request);
+    Task FriendRequestCanceled(FriendRequestCanceledMessage request);
+
     // Conversations
-    Task CreatedNewConversation(ConversationResponse conversation);
-    Task AddedToConversation(ConversationResponse conversation, Guid userId);
+    Task CreatedNewConversation(NewConversationMessage conversation);
+    Task AddedToConversation(AddedToConversationMessage conversation, Guid userId);
     Task RemovedFromConversation(Guid conversationId, Guid userId);
-    Task ConversationInfoChanged(ConversationResponse conversation);
-    
+    Task ConversationInfoChanged(ChangedConversationMessage conversation);
+
     // Users
     Task FriendRemoved(Guid friendId);
-    Task UserInfoChanged(UserUpdateResponse user);
-    
+    Task UserInfoChanged(UserInfoChangedMessage user);
 }

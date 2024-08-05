@@ -32,7 +32,6 @@ builder.Services.AddSignalR().AddJsonProtocol(options =>
 {
     options.PayloadSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
 });
-builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
@@ -41,10 +40,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services.AddMassTransit(x =>
 {
     x.AddConsumers(typeof(Program).Assembly);
-    x.UsingInMemory((context, cfg) =>
-    {
-        cfg.ConfigureEndpoints(context);
-    });
+    x.UsingInMemory((context, cfg) => { cfg.ConfigureEndpoints(context); });
 });
 
 var credentials = new BasicAWSCredentials(

@@ -1,7 +1,9 @@
-﻿using DiscordButBetter.Server.Contracts.Responses;
+﻿using DiscordButBetter.Server.Contracts.Messages.Users;
+using DiscordButBetter.Server.Contracts.Responses;
 using DiscordButBetter.Server.Database;
 using DiscordButBetter.Server.Database.Models;
 using DiscordButBetter.Server.Services;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
 
@@ -85,7 +87,7 @@ public class HeartBeatService(
     private async Task CleanUpServers(List<ServerModel> servers, DbbContext db, CancellationToken cancellationToken)
     {
         await using var scope = serviceScopeFactory.CreateAsyncScope();
-        var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+        var bus = scope.ServiceProvider.GetRequiredService<IBus>();
 
         var users = servers
             .SelectMany(s => s.Connections)
@@ -106,12 +108,12 @@ public class HeartBeatService(
                 var dbUser = await db.Users.FindAsync(user.UserId);
                 dbUser!.Online = false;
                 dbUser.Status = 0;
-                var userUpdate = new UserUpdateResponse
+                var userUpdate = new UserInfoChangedMessage()
                 {
                     UserId = user.UserId,
                     Status = 0
                 };
-                await notificationService.UserInfoChanged(userUpdate);
+                await bus.Publish(userUpdate, cancellationToken);
             }
         }
 
