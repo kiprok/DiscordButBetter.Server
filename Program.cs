@@ -6,6 +6,7 @@ using Amazon.S3;
 using Carter;
 using DiscordButBetter.Server.Authentication;
 using DiscordButBetter.Server.Background;
+using DiscordButBetter.Server.Contracts.Messages;
 using DiscordButBetter.Server.Database;
 using DiscordButBetter.Server.notificationServer;
 using DiscordButBetter.Server.Services;
@@ -13,6 +14,7 @@ using MassTransit;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using RabbitMQ.Client;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -40,14 +42,18 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services.AddMassTransit(x =>
 {
     x.AddConsumers(typeof(Program).Assembly);
-    x.UsingRabbitMq((contect,cfg) =>
+
+    x.UsingRabbitMq((context,cfg) =>
     {
         cfg.Host(builder.Configuration["RABBITMQ_HOST"], "/", h =>
         {
             h.Username(builder.Configuration["RABBITMQ_USER"]);
             h.Password(builder.Configuration["RABBITMQ_PASS"]);
         });
-        cfg.ConfigureEndpoints(contect);
+
+        cfg.ExchangeType = ExchangeType.Fanout;
+        
+        cfg.ConfigureEndpoints(context);
     });
 });
 
