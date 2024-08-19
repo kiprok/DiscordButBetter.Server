@@ -40,7 +40,15 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services.AddMassTransit(x =>
 {
     x.AddConsumers(typeof(Program).Assembly);
-    x.UsingInMemory((context, cfg) => { cfg.ConfigureEndpoints(context); });
+    x.UsingRabbitMq((contect,cfg) =>
+    {
+        cfg.Host(builder.Configuration["RABBITMQ_HOST"], "/", h =>
+        {
+            h.Username(builder.Configuration["RABBITMQ_USER"]);
+            h.Password(builder.Configuration["RABBITMQ_PASS"]);
+        });
+        cfg.ConfigureEndpoints(contect);
+    });
 });
 
 var credentials = new BasicAWSCredentials(
