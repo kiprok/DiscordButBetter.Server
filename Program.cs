@@ -50,10 +50,14 @@ builder.Services.AddMassTransit(x =>
             h.Username(builder.Configuration["RABBITMQ_USER"]);
             h.Password(builder.Configuration["RABBITMQ_PASS"]);
         });
-
-        cfg.ExchangeType = ExchangeType.Fanout;
         
-        cfg.ConfigureEndpoints(context);
+        cfg.ExchangeType = ExchangeType.Fanout;
+        cfg.AutoDelete = true;
+        cfg.SetQuorumQueue(3);
+        
+        string queueName = Guid.NewGuid().ToString();
+        
+        cfg.ConfigureEndpoints(context, new KebabCaseEndpointNameFormatter(queueName));
     });
 });
 
