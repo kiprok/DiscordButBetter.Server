@@ -20,7 +20,7 @@ public interface INotificationClient
 
     // Conversations
     Task CreatedNewConversation(NewConversationMessage conversation);
-    Task AddedToConversation(AddedToConversationMessage conversation, Guid userId);
+    Task AddedToConversation(AddedToConversationMessage conversation);
     Task RemovedFromConversation(Guid conversationId, Guid userId);
     Task ConversationInfoChanged(ChangedConversationMessage conversation);
 

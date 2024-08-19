@@ -1,11 +1,13 @@
 ﻿using System.Security.Claims;
 using Carter;
 using DiscordButBetter.Server.Contracts.Mappers;
+using DiscordButBetter.Server.Contracts.Messages.Users;
 using DiscordButBetter.Server.Contracts.Requests;
 using DiscordButBetter.Server.Contracts.Responses;
 using DiscordButBetter.Server.Database;
 using DiscordButBetter.Server.Database.Models;
 using DiscordButBetter.Server.Services;
+using MassTransit;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -36,7 +38,7 @@ public class FriendsModule : CarterModule
         [FromBody] FriendRequestRequest friendRequest, 
         DbbContext db, 
         ClaimsPrincipal claim,
-        INotificationService notificationService)
+        IBus bus)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
         var targetUser = db.Users.Include(u => u.Friends).FirstOrDefault(u => u.Id == friendRequest.UserId);
@@ -50,7 +52,7 @@ public class FriendsModule : CarterModule
                 var request = new FriendRequestModel { SenderId = userId, ReceiverId = targetUser.Id };
                 db.FriendRequests.Add(request);
                 await db.SaveChangesAsync();
-                await notificationService.SendFriendRequest(request.ToResponse());
+                await bus.Publish(request.ToSendMessage());
                 return TypedResults.Ok(request.ToResponse());
             case RequestType.Accept:
                 if (req == null) return TypedResults.NotFound();
@@ -60,20 +62,20 @@ public class FriendsModule : CarterModule
                 targetUser.Friends.Add(currentUser);
                 db.FriendRequests.Remove(req);
                 await db.SaveChangesAsync();
-                await notificationService.SendFriendRequestAccepted(req.ToResponse());
+                await bus.Publish(req.ToAcceptedMessage());
                 return TypedResults.Ok();
             case RequestType.Decline:
                 if (req == null) return TypedResults.NotFound();
                 db.FriendRequests.Remove(req);
                 await db.SaveChangesAsync();
-                await notificationService.SendFriendRequestDeclined(req.ToResponse());
+                await bus.Publish(req.ToDeclinedMessage());
 
                 return TypedResults.Ok();
             case RequestType.Cancel:
                 if (req == null) return TypedResults.NotFound();
                 db.FriendRequests.Remove(req);
                 await db.SaveChangesAsync();
-                await notificationService.SendFriendRequestCanceled(req.ToResponse());
+                await bus.Publish(req.ToCanceledMessage());
                 return TypedResults.Ok();
             default:
                 return TypedResults.BadRequest();
@@ -92,7 +94,7 @@ public class FriendsModule : CarterModule
         DbbContext db, 
         ClaimsPrincipal claim, 
         Guid friendId,
-        INotificationService notificationService)
+        IBus bus)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
 
@@ -105,7 +107,7 @@ public class FriendsModule : CarterModule
         user.Friends.Remove(friend);
         friend.Friends.Remove(user);
         await db.SaveChangesAsync();
-        await notificationService.SendFriendRemoved(userId, friendId);
+        await bus.Publish(new FriendRemovedMessage { UserId = userId,FriendId = friendId });
         return TypedResults.Ok();
     }
 

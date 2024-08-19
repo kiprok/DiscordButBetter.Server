@@ -6,6 +6,7 @@ using DiscordButBetter.Server.Contracts.Responses;
 using DiscordButBetter.Server.Database;
 using DiscordButBetter.Server.Database.Models;
 using DiscordButBetter.Server.Services;
+using MassTransit;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -46,7 +47,7 @@ public class MessagesModule : CarterModule
         DbbContext db,
         Guid messageId,
         [FromBody] UpdateChatMessageRequest request,
-        INotificationService notificationService)
+        IBus bus)
     {
         var message = await db.Messages.FindAsync(messageId);
         if (message == null) return TypedResults.NotFound();
@@ -58,12 +59,15 @@ public class MessagesModule : CarterModule
 
         var response = message.ToMessageResponse();
         
-        await notificationService.SendMessageEdited(response);
+        await bus.Publish(message.ToEditChatMessageMessage());
         
         return TypedResults.Ok(response);
     }
 
-    private async Task<Results<Ok, NotFound>> DeleteMessageById(DbbContext db, Guid messageId, INotificationService notificationService)
+    private async Task<Results<Ok, NotFound>> DeleteMessageById(
+        DbbContext db,
+        Guid messageId,
+        IBus bus)
     {
         var message = await db.Messages.FindAsync(messageId);
         if (message == null) return TypedResults.NotFound();
@@ -71,7 +75,7 @@ public class MessagesModule : CarterModule
         db.Messages.Remove(message);
         await db.SaveChangesAsync();
         
-        await notificationService.SendMessageDeleted(message.ToMessageResponse());
+        await bus.Publish(message.ToDeleteChatMessageMessage());
         
         return TypedResults.Ok();
     }
@@ -80,7 +84,7 @@ public class MessagesModule : CarterModule
         DbbContext db, 
         [FromBody] SendChatMessageRequest request,
         ClaimsPrincipal claim,
-        INotificationService notificationService)
+        IBus bus)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
         var message = request.ToChatMessageModel();
@@ -94,7 +98,7 @@ public class MessagesModule : CarterModule
 
         var response = message.ToMessageResponse();
 
-        await notificationService.SendMessage(response);
+        await bus.Publish(message.ToSendChatMessageMessage());
         
         return TypedResults.Ok(response);
     }

@@ -14,6 +14,6 @@ public class AddedToConversationConsumer(IHubContext<NotificationHub, INotificat
         await NotificationHub.AddToGroupAsync(hubContext, conversation.UserId, conversation.ConversationId);
         foreach (var participant in conversation.Participants)
             await hubContext.Clients.User(participant.ToString())
-                .AddedToConversation(conversation, conversation.UserId);
+                .AddedToConversation(conversation);
     }
 }

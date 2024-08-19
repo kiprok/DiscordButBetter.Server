@@ -1,16 +1,18 @@
 ﻿using System.Collections.Concurrent;
 using DiscordButBetter.Server.Background;
 using DiscordButBetter.Server.Contracts.Mappers;
+using DiscordButBetter.Server.Contracts.Messages.Users;
 using DiscordButBetter.Server.Contracts.Responses;
 using DiscordButBetter.Server.Database;
 using DiscordButBetter.Server.Database.Models;
 using DiscordButBetter.Server.Utilities;
+using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace DiscordButBetter.Server.notificationServer;
 
-public class NotificationHub(DbbContext db, ILogger<NotificationHub> logger) : Hub<INotificationClient>
+public class NotificationHub(DbbContext db, IBus bus, ILogger<NotificationHub> logger) : Hub<INotificationClient>
 {
     public static ConcurrentDictionary<Guid, ConcurrentList<string>> ConnectedUsers = new();
 
@@ -68,14 +70,14 @@ public class NotificationHub(DbbContext db, ILogger<NotificationHub> logger) : H
         foreach (var friendRequest in user.SentFriendRequests)
             await Groups.AddToGroupAsync(Context.ConnectionId, friendRequest.Id.ToString());
 
-        var response = new UserUpdateResponse
+        var response = new UserInfoChangedMessage
         {
             UserId = userId,
             Status = user.Status
         };
 
         //await Clients.Group(userId.ToString()).UserInfoChanged(response);
-
+        await bus.Publish(response);
         await Clients.Caller.InitializedUser();
     }
 
@@ -101,12 +103,13 @@ public class NotificationHub(DbbContext db, ILogger<NotificationHub> logger) : H
                 {
                     user.Online = false;
                     user.Status = 0;
-                    var userUpdate = new UserUpdateResponse
+                    var userUpdate = new UserInfoChangedMessage
                     {
                         UserId = userId,
                         Status = 0
                     };
                     //await Clients.Group(userId.ToString()).UserInfoChanged(userUpdate);
+                    await bus.Publish(userUpdate);
                     await db.SaveChangesAsync();
                 }
         }
