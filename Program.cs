@@ -4,6 +4,7 @@ using Amazon.Extensions.NETCore.Setup;
 using Amazon.Runtime;
 using Amazon.S3;
 using Carter;
+using DiscordButBetter.Server;
 using DiscordButBetter.Server.Authentication;
 using DiscordButBetter.Server.Background;
 using DiscordButBetter.Server.Contracts.Messages;
@@ -41,7 +42,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 builder.Services.AddMassTransit(x =>
 {
-    x.AddConsumers(typeof(Program).Assembly);
+    x.ConfigureAllConsumers();
 
     x.UsingRabbitMq((context,cfg) =>
     {
@@ -55,9 +56,7 @@ builder.Services.AddMassTransit(x =>
         cfg.AutoDelete = true;
         cfg.SetQuorumQueue(3);
         
-        string queueName = Guid.NewGuid().ToString();
-        
-        cfg.ConfigureEndpoints(context, new KebabCaseEndpointNameFormatter(queueName));
+        cfg.ConfigureEndpoints(context);
     });
 });
 
