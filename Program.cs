@@ -7,15 +7,12 @@ using Carter;
 using DiscordButBetter.Server;
 using DiscordButBetter.Server.Authentication;
 using DiscordButBetter.Server.Background;
-using DiscordButBetter.Server.Contracts.Messages;
 using DiscordButBetter.Server.Database;
 using DiscordButBetter.Server.notificationServer;
 using DiscordButBetter.Server.Services;
 using MassTransit;
-using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using RabbitMQ.Client;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -44,15 +41,16 @@ builder.Services.AddMassTransit(x =>
 {
     x.ConfigureAllConsumers();
 
-    x.UsingRabbitMq((context,cfg) =>
+    x.UsingRabbitMq((context, cfg) =>
     {
         cfg.Host(builder.Configuration["RABBITMQ_HOST"], "/", h =>
         {
             h.Username(builder.Configuration["RABBITMQ_USER"]);
             h.Password(builder.Configuration["RABBITMQ_PASS"]);
         });
-        
-        cfg.ConfigureEndpoints(context);
+
+
+        cfg.ConfigureEndpoints(context, new KebabCaseEndpointNameFormatter(false));
     });
 });
 

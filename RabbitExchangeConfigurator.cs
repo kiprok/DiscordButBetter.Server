@@ -11,111 +11,33 @@ public static class RabbitExchangeConfigurator
 {
     public static void ConfigureAllConsumers(this IBusRegistrationConfigurator cfg)
     {
-        #region Conversations
+        //conversation
+        cfg.AddUniqueConsumer<AddedToConversationConsumer>();
+        cfg.AddUniqueConsumer<RemovedFromConversationConsumer>();
+        cfg.AddUniqueConsumer<NewConversationConsumer>();
+        cfg.AddUniqueConsumer<ChangedConversationConsumer>();
+        //friend requests
+        cfg.AddUniqueConsumer<FriendRequestAcceptedConsumer>();
+        cfg.AddUniqueConsumer<FriendRequestCanceledConsumer>();
+        cfg.AddUniqueConsumer<FriendRequestDeclinedConsumer>();
+        cfg.AddUniqueConsumer<FriendRequestSendConsumer>();
+        //messages
+        cfg.AddUniqueConsumer<SendChatMessageConsumer>();
+        cfg.AddUniqueConsumer<EditChatMessageConsumer>();
+        cfg.AddUniqueConsumer<DeleteChatMessageConsumer>();
+        //users
+        cfg.AddUniqueConsumer<FriendRemovedConsumer>();
+        cfg.AddUniqueConsumer<UserInfoChangedConsumer>();
+    }
 
-        cfg.AddConsumer<AddedToConversationConsumer>()
+    public static void AddUniqueConsumer<TConsumer>(this IBusRegistrationConfigurator cfg)
+        where TConsumer : class, IConsumer
+    {
+        cfg.AddConsumer<TConsumer>()
             .Endpoint(e =>
             {
                 e.Temporary = true;
                 e.InstanceId = HeartBeatService.ServiceId.ToString();
             });
-        
-        cfg.AddConsumer<RemovedFromConversationConsumer>()
-            .Endpoint(e =>
-            {
-                e.Temporary = true;
-                e.InstanceId = HeartBeatService.ServiceId.ToString();
-            });
-        
-        cfg.AddConsumer<NewConversationConsumer>()
-            .Endpoint(e =>
-            {
-                e.Temporary = true;
-                e.InstanceId = HeartBeatService.ServiceId.ToString();
-            });
-        
-        cfg.AddConsumer<ChangedConversationConsumer>()
-            .Endpoint(e =>
-            {
-                e.Temporary = true;
-                e.InstanceId = HeartBeatService.ServiceId.ToString();
-            });
-
-        #endregion
-
-        #region friendRequests
-
-        cfg.AddConsumer<FriendRequestAcceptedConsumer>()
-            .Endpoint(e =>
-            {
-                e.Temporary = true;
-                e.InstanceId = HeartBeatService.ServiceId.ToString();
-            });
-        
-        cfg.AddConsumer<FriendRequestCanceledConsumer>()
-            .Endpoint(e =>
-            {
-                e.Temporary = true;
-                e.InstanceId = HeartBeatService.ServiceId.ToString();
-            });
-        
-        cfg.AddConsumer<FriendRequestDeclinedConsumer>()
-            .Endpoint(e =>
-            {
-                e.Temporary = true;
-                e.InstanceId = HeartBeatService.ServiceId.ToString();
-            });
-        
-        cfg.AddConsumer<FriendRequestSendConsumer>()
-            .Endpoint(e =>
-            {
-                e.Temporary = true;
-                e.InstanceId = HeartBeatService.ServiceId.ToString();
-            });
-        
-        #endregion
-
-        #region messages
-
-        cfg.AddConsumer<SendChatMessageConsumer>()
-            .Endpoint(e =>
-            {
-                e.Temporary = true;
-                e.InstanceId = HeartBeatService.ServiceId.ToString();
-            });
-        
-        cfg.AddConsumer<EditChatMessageConsumer>()
-            .Endpoint(e =>
-            {
-                e.Temporary = true;
-                e.InstanceId = HeartBeatService.ServiceId.ToString();
-            });
-        
-        cfg.AddConsumer<DeleteChatMessageConsumer>()
-            .Endpoint(e =>
-            {
-                e.Temporary = true;
-                e.InstanceId = HeartBeatService.ServiceId.ToString();
-            });
-
-        #endregion
-
-        #region users
-
-        cfg.AddConsumer<FriendRemovedConsumer>()
-            .Endpoint(e =>
-            {
-                e.Temporary = true;
-                e.InstanceId = HeartBeatService.ServiceId.ToString();
-            });
-        
-        cfg.AddConsumer<UserInfoChangedConsumer>()
-            .Endpoint(e =>
-            {
-                e.Temporary = true;
-                e.InstanceId = HeartBeatService.ServiceId.ToString();
-            });
-
-        #endregion
     }
 }
