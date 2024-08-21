@@ -1,8 +1,4 @@
 ﻿using DiscordButBetter.Server.Background;
-using DiscordButBetter.Server.Consumers.Conversations;
-using DiscordButBetter.Server.Consumers.FriendRequests;
-using DiscordButBetter.Server.Consumers.Messages;
-using DiscordButBetter.Server.Consumers.Users;
 using MassTransit;
 
 namespace DiscordButBetter.Server;
@@ -11,33 +7,20 @@ public static class RabbitExchangeConfigurator
 {
     public static void ConfigureAllConsumers(this IBusRegistrationConfigurator cfg)
     {
-        //conversation
-        cfg.AddUniqueConsumer<AddedToConversationConsumer>();
-        cfg.AddUniqueConsumer<RemovedFromConversationConsumer>();
-        cfg.AddUniqueConsumer<NewConversationConsumer>();
-        cfg.AddUniqueConsumer<ChangedConversationConsumer>();
-        //friend requests
-        cfg.AddUniqueConsumer<FriendRequestAcceptedConsumer>();
-        cfg.AddUniqueConsumer<FriendRequestCanceledConsumer>();
-        cfg.AddUniqueConsumer<FriendRequestDeclinedConsumer>();
-        cfg.AddUniqueConsumer<FriendRequestSendConsumer>();
-        //messages
-        cfg.AddUniqueConsumer<SendChatMessageConsumer>();
-        cfg.AddUniqueConsumer<EditChatMessageConsumer>();
-        cfg.AddUniqueConsumer<DeleteChatMessageConsumer>();
-        //users
-        cfg.AddUniqueConsumer<FriendRemovedConsumer>();
-        cfg.AddUniqueConsumer<UserInfoChangedConsumer>();
-    }
+        var type = typeof(IConsumer);
+        var attributeType = typeof(UniqueEndpointAttribute);
+        var types = 
+            AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(s => s.GetTypes())
+            .Where(t => t.IsClass && !t.IsAbstract && type.IsAssignableFrom(t) && Attribute.IsDefined(t, attributeType));
 
-    public static void AddUniqueConsumer<TConsumer>(this IBusRegistrationConfigurator cfg)
-        where TConsumer : class, IConsumer
-    {
-        cfg.AddConsumer<TConsumer>()
-            .Endpoint(e =>
+        foreach (var t in types)
+        {
+            cfg.AddConsumer(t).Endpoint(e =>
             {
                 e.Temporary = true;
                 e.InstanceId = HeartBeatService.ServiceId.ToString();
             });
+        }
     }
 }

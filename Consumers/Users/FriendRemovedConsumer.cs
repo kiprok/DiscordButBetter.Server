@@ -4,7 +4,7 @@ using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 
 namespace DiscordButBetter.Server.Consumers.Users;
-
+[UniqueEndpoint]
 public class FriendRemovedConsumer(IHubContext<NotificationHub, INotificationClient> hubContext)
     : IConsumer<FriendRemovedMessage>
 {

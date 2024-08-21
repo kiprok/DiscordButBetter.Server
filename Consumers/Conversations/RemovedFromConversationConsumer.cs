@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace DiscordButBetter.Server.Consumers.Conversations;
 
+[UniqueEndpoint]
 public class RemovedFromConversationConsumer(IHubContext<NotificationHub, INotificationClient> hubContext)
     : IConsumer<RemovedFromConversationMessage>
 {

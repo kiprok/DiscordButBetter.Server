@@ -40,7 +40,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services.AddMassTransit(x =>
 {
     x.ConfigureAllConsumers();
-
+    
     x.UsingRabbitMq((context, cfg) =>
     {
         cfg.Host(builder.Configuration["RABBITMQ_HOST"], "/", h =>

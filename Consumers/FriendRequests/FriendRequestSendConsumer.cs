@@ -4,7 +4,7 @@ using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 
 namespace DiscordButBetter.Server.Consumers.FriendRequests;
-
+[UniqueEndpoint]
 public class FriendRequestSendConsumer(IHubContext<NotificationHub, INotificationClient> hubContext)
     : IConsumer<FriendRequestSendMessage>
 {

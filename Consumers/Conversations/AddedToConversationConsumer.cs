@@ -4,7 +4,7 @@ using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 
 namespace DiscordButBetter.Server.Consumers.Conversations;
-
+[UniqueEndpoint]
 public class AddedToConversationConsumer(IHubContext<NotificationHub, INotificationClient> hubContext)
     : IConsumer<AddedToConversationMessage>
 {
