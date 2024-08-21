@@ -1,4 +1,4 @@
-﻿namespace DiscordButBetter.Server;
+﻿namespace DiscordButBetter.Server.Utilities;
 
 public class UniqueEndpointAttribute : Attribute
 {

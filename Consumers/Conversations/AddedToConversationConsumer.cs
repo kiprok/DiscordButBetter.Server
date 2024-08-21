@@ -1,5 +1,6 @@
 ﻿using DiscordButBetter.Server.Contracts.Messages;
 using DiscordButBetter.Server.notificationServer;
+using DiscordButBetter.Server.Utilities;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 

@@ -1,7 +1,7 @@
 ﻿using DiscordButBetter.Server.Background;
 using MassTransit;
 
-namespace DiscordButBetter.Server;
+namespace DiscordButBetter.Server.Utilities;
 
 public static class RabbitExchangeConfigurator
 {

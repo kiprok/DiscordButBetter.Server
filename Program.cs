@@ -10,6 +10,7 @@ using DiscordButBetter.Server.Background;
 using DiscordButBetter.Server.Database;
 using DiscordButBetter.Server.notificationServer;
 using DiscordButBetter.Server.Services;
+using DiscordButBetter.Server.Utilities;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
