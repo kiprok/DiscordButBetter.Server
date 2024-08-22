@@ -1,11 +1,10 @@
-﻿namespace DiscordButBetter.Server.Contracts.Messages;
+﻿namespace DiscordButBetter.Server.Contracts.Responses;
 
-public class ChangedConversationMessage
+public class ConversationUpdateResponse
 {
     public Guid ConversationId { get; set; }
     public string? ConversationName { get; set; }
     public string? ConversationPicture { get; set; }
-    public List<Guid> Participants { get; set; }
     public List<Guid>? ParticipantsToAdd { get; set; }
     public List<Guid>? ParticipantsToRemove { get; set; }
 }

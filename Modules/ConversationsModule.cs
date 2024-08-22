@@ -39,28 +39,38 @@ public class ConversationsModule : CarterModule
         app.MapPatch("/{conversationId:Guid}", UpdateConversationById);
     }
 
-    private async Task<Results<Ok<ConversationResponse>, NotFound>> UpdateConversationById(DbbContext db,
+    private async Task<Results<Ok<ConversationUpdateResponse>, NotFound>> UpdateConversationById(DbbContext db,
         Guid conversationId,
         [FromBody] UpdateConversationRequest request,
         ClaimsPrincipal claim,
         IBus bus)
     {
-        var conversation = db.Conversations.Include(c => c.Participants)
+        var conversation = db.Conversations
+            .Include(c => c.Participants)
+            .Include(c => c.ParticipantsVisible)
             .FirstOrDefault(c => c.Id == conversationId);
         if (conversation == null) return TypedResults.NotFound();
 
         if (request.ConversationName != null) conversation.ConversationName = request.ConversationName;
         if (request.ConversationPicture != null) conversation.ConversationPicture = request.ConversationPicture;
         if (request.ParticipantsToAdd != null)
+        {
             conversation.Participants.AddRange(db.Users.Where(u => request.ParticipantsToAdd.Contains(u.Id)));
+            conversation.ParticipantsVisible.AddRange(db.Users.Where(u => request.ParticipantsToAdd.Contains(u.Id)));
+        }
+
         if (request.ParticipantsToRemove != null)
+        {
             conversation.Participants.RemoveAll(u => request.ParticipantsToRemove.Contains(u.Id));
+            conversation.ParticipantsVisible.RemoveAll(u => request.ParticipantsToRemove.Contains(u.Id));
+        }
 
         await db.SaveChangesAsync();
 
-        await bus.Publish(conversation.ToChangedConversationMessage());
+        await bus.Publish(
+            conversation.ToChangedConversationMessage(request.ParticipantsToAdd, request.ParticipantsToRemove));
 
-        return TypedResults.Ok(conversation.ToConversationResponse());
+        return TypedResults.Ok(request.ToConversationUpdateResponse(conversation.Id));
     }
 
     private async Task<Results<Ok, NotFound>> DeleteConversationById(

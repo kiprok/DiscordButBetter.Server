@@ -1,4 +1,5 @@
 ﻿using DiscordButBetter.Server.Contracts.Messages;
+using DiscordButBetter.Server.Contracts.Requests;
 using DiscordButBetter.Server.Contracts.Responses;
 using DiscordButBetter.Server.Database.Models;
 
@@ -19,7 +20,7 @@ public static class MapConversationModel
             Participants = conversation.Participants.Select(c => c.Id).ToList()
         };
     }
-    
+
     public static NewConversationMessage ToNewConversationMessage(this ConversationModel conversation)
     {
         return new NewConversationMessage
@@ -33,8 +34,9 @@ public static class MapConversationModel
             Participants = conversation.Participants.Select(c => c.Id).ToList()
         };
     }
-    
-    public static AddedToConversationMessage ToAddedToConversationMessage(this ConversationModel conversation, Guid userId)
+
+    public static AddedToConversationMessage ToAddedToConversationMessage(this ConversationModel conversation,
+        Guid userId)
     {
         return new AddedToConversationMessage
         {
@@ -48,8 +50,9 @@ public static class MapConversationModel
             Participants = conversation.Participants.Select(c => c.Id).ToList()
         };
     }
-    
-    public static RemovedFromConversationMessage ToRemovedFromConversationMessage(this ConversationModel conversation, Guid userId)
+
+    public static RemovedFromConversationMessage ToRemovedFromConversationMessage(this ConversationModel conversation,
+        Guid userId)
     {
         return new RemovedFromConversationMessage
         {
@@ -63,19 +66,32 @@ public static class MapConversationModel
             Participants = conversation.Participants.Select(c => c.Id).ToList()
         };
     }
-    
-    public static ChangedConversationMessage ToChangedConversationMessage(this ConversationModel conversation)
+
+    public static ChangedConversationMessage ToChangedConversationMessage(this ConversationModel conversation,
+        List<Guid>? participantsToAdd, List<Guid>? participantsToRemove)
     {
         return new ChangedConversationMessage
         {
             ConversationId = conversation.Id,
-            OwnerId = conversation.OwnerId,
             ConversationName = conversation.ConversationName,
-            ConversationType = conversation.ConversationType,
             ConversationPicture = conversation.ConversationPicture,
-            LastMessageTime = conversation.LastMessageTime,
-            Participants = conversation.Participants.Select(c => c.Id).ToList()
+            Participants = conversation.Participants.Select(c => c.Id).ToList(),
+            ParticipantsToAdd = participantsToAdd,
+            ParticipantsToRemove = participantsToRemove
         };
     }
-    
+
+
+    public static ConversationUpdateResponse ToConversationUpdateResponse(this UpdateConversationRequest request,
+        Guid conversationId)
+    {
+        return new ConversationUpdateResponse
+        {
+            ConversationId = conversationId,
+            ConversationName = request.ConversationName,
+            ConversationPicture = request.ConversationPicture,
+            ParticipantsToAdd = request.ParticipantsToAdd,
+            ParticipantsToRemove = request.ParticipantsToRemove
+        };
+    }
 }
