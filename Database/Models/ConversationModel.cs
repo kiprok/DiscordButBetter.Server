@@ -3,6 +3,9 @@
 public class ConversationModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+
+    public Guid? OwnerId { get; set; } = null;
+    public UserModel? Owner { get; set; } = null;
     public string ConversationName { get; set; }
     public byte ConversationType { get; set; }
     public string ConversationPicture { get; set; }

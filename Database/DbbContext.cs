@@ -26,6 +26,11 @@ public class DbbContext : DbContext
                 i => i.HasOne(typeof(UserModel)).WithMany().HasForeignKey("FriendId"),
                 j => j.HasOne(typeof(UserModel)).WithMany().HasForeignKey("UserId"));
 
+        modelBuilder.Entity<ConversationModel>()
+            .HasOne(o => o.Owner)
+            .WithMany(u => u.OwnedConversations)
+            .HasForeignKey(c => c.OwnerId);
+        
         modelBuilder.Entity<UserModel>()
             .HasMany(u => u.SentFriendRequests)
             .WithOne(r => r.Sender)
