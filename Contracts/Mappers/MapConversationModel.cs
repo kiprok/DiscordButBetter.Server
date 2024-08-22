@@ -11,6 +11,7 @@ public static class MapConversationModel
         return new ConversationResponse
         {
             ConversationId = conversation.Id,
+            OwnerId = conversation.OwnerId,
             ConversationName = conversation.ConversationName,
             ConversationType = conversation.ConversationType,
             ConversationPicture = conversation.ConversationPicture,
@@ -24,6 +25,7 @@ public static class MapConversationModel
         return new NewConversationMessage
         {
             ConversationId = conversation.Id,
+            OwnerId = conversation.OwnerId,
             ConversationName = conversation.ConversationName,
             ConversationType = conversation.ConversationType,
             ConversationPicture = conversation.ConversationPicture,
@@ -38,6 +40,7 @@ public static class MapConversationModel
         {
             UserId = userId,
             ConversationId = conversation.Id,
+            OwnerId = conversation.OwnerId,
             ConversationName = conversation.ConversationName,
             ConversationType = conversation.ConversationType,
             ConversationPicture = conversation.ConversationPicture,
@@ -52,6 +55,7 @@ public static class MapConversationModel
         {
             UserId = userId,
             ConversationId = conversation.Id,
+            OwnerId = conversation.OwnerId,
             ConversationName = conversation.ConversationName,
             ConversationType = conversation.ConversationType,
             ConversationPicture = conversation.ConversationPicture,
@@ -65,6 +69,7 @@ public static class MapConversationModel
         return new ChangedConversationMessage
         {
             ConversationId = conversation.Id,
+            OwnerId = conversation.OwnerId,
             ConversationName = conversation.ConversationName,
             ConversationType = conversation.ConversationType,
             ConversationPicture = conversation.ConversationPicture,

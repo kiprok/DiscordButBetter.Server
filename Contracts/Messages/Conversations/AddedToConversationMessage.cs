@@ -3,6 +3,7 @@
 public class AddedToConversationMessage
 {
     public Guid UserId { get; set; }
+    public Guid? OwnerId { get; set; }
     public Guid ConversationId { get; set; }
     public string ConversationName { get; set; }
     public byte ConversationType { get; set; }
