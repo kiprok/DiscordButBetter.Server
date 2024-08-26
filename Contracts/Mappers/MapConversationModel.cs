@@ -73,6 +73,7 @@ public static class MapConversationModel
         return new ChangedConversationMessage
         {
             ConversationId = conversation.Id,
+            OwnerId = conversation.OwnerId,
             ConversationName = conversation.ConversationName,
             ConversationPicture = conversation.ConversationPicture,
             Participants = conversation.Participants.Select(c => c.Id).ToList(),

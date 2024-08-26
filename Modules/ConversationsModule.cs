@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using Carter;
 using DiscordButBetter.Server.Contracts.Mappers;
+using DiscordButBetter.Server.Contracts.Messages;
 using DiscordButBetter.Server.Contracts.Requests;
 using DiscordButBetter.Server.Contracts.Responses;
 using DiscordButBetter.Server.Database;
@@ -96,16 +97,34 @@ public class ConversationsModule : CarterModule
         if (conversation.ConversationType == 0)
         {
             user.VisibleConversations.Remove(conversation);
+            await db.SaveChangesAsync();
+            return TypedResults.Ok();
         }
-        else
+
+        conversation.Participants.Remove(user);
+        if (conversation.Participants.Count == 1)
         {
-            conversation.Participants.Remove(user);
-            if (conversation.Participants.Count == 1) db.Conversations.Remove(conversation);
+            db.Conversations.Remove(conversation);
+            await db.SaveChangesAsync();
+            return TypedResults.Ok();
+        }
+
+        if(conversation.OwnerId == userId)
+        {
+            conversation.OwnerId = conversation.Participants.First().Id;
         }
 
         await db.SaveChangesAsync();
 
-        await bus.Publish(conversation.ToRemovedFromConversationMessage(userId));
+        var message = new ChangedConversationMessage
+        {
+            ConversationId = conversationId,
+            OwnerId = conversation.OwnerId != userId ? conversation.OwnerId : null,
+            Participants = conversation.Participants.Select(u => u.Id).ToList(),
+            ParticipantsToRemove = new List<Guid> {userId}
+        };
+
+        await bus.Publish(message);
         return TypedResults.Ok();
     }
 
@@ -139,6 +158,7 @@ public class ConversationsModule : CarterModule
         var conversation = new ConversationModel
         {
             Id = Guid.NewGuid(),
+            OwnerId = userId,
             ConversationName = request.ConversationName,
             ConversationType = request.ConversationType,
             ConversationPicture = "",
