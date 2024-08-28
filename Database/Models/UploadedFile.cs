@@ -5,6 +5,7 @@ public class UploadedFile
     public Guid Id { get; set; }
     public string FileName { get; set; }
     public string OriginalFileName { get; set; }
+    public int FileSize { get; set; }
     public Guid UploaderId { get; set; }
     public UserModel Uploader { get; set; }
     public string FileType { get; set; }

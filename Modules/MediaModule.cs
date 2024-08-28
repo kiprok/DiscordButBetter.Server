@@ -5,6 +5,8 @@ using Amazon.S3.Model;
 using Carter;
 using DiscordButBetter.Server.Contracts.Requests;
 using DiscordButBetter.Server.Contracts.Responses;
+using DiscordButBetter.Server.Database;
+using DiscordButBetter.Server.Database.Models;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,9 +29,11 @@ public class MediaModule : CarterModule
         app.MapPost("/avatars", UploadAvatar);
     }
 
-    private async Task<Results<Ok<UploadFileResponse>, BadRequest>> UploadAvatar([FromBody] UploadFileRequest rq,
+    private async Task<Results<Ok<UploadFileResponse>, BadRequest>> UploadAvatar(
+        [FromBody] UploadFileRequest rq,
         IAmazonS3 s3Client,
-        ClaimsPrincipal claim)
+        ClaimsPrincipal claim,
+        DbbContext db)
     {
         if(rq.FileSize > 5_000_000) return TypedResults.BadRequest();
         if(!rq.FileType.StartsWith("image/")) return TypedResults.BadRequest();
@@ -38,7 +42,7 @@ public class MediaModule : CarterModule
         var fileExtension = Path.GetExtension(rq.FileName);
         var randomFileName = RandomNumberGenerator.GetString(Chars, 40);
         var newFileName = $"{userId}/{randomFileName}{fileExtension}";
-        var presign = new GetPreSignedUrlRequest
+        var preSign = new GetPreSignedUrlRequest
         {
             BucketName = "avatars",
             Key = newFileName,
@@ -51,7 +55,22 @@ public class MediaModule : CarterModule
             }
         };
 
-        var url = await s3Client.GetPreSignedURLAsync(presign);
+        var url = await s3Client.GetPreSignedURLAsync(preSign);
+        
+        UploadedFile dbEntry = new()
+        {
+            OriginalFileName = rq.FileName,
+            FileName = newFileName,
+            UploaderId = userId,
+            FileType = rq.FileType,
+            FileSize = rq.FileSize,
+            UploadedAt = DateTime.UtcNow,
+            Hash = ""
+        };
+        
+        await db.UploadedFiles.AddAsync(dbEntry);
+        await db.SaveChangesAsync();
+        
 
         return TypedResults.Ok(new UploadFileResponse
         {
