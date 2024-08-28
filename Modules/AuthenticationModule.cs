@@ -75,22 +75,6 @@ public class AuthenticationModule : CarterModule
         if (await db.Users.AnyAsync(u => u.Username == request.Username))
             return TypedResults.BadRequest("Username already exists.");
 
-        var randomProfilePicture = "";
-        var randomName = "";
-        var response = await client.GetAsync("https://randomuser.me/api/");
-        if (response.IsSuccessStatusCode)
-        {
-            var content = await response.Content.ReadAsStringAsync();
-            var rUser = JsonNode.Parse(content);
-            randomProfilePicture = rUser["results"][0]["picture"]["large"].ToString();
-            randomName = rUser["results"][0]["name"]["first"].ToString();
-            randomName += " " + rUser["results"][0]["name"]["last"].ToString();
-        }
-        else
-        {
-            return TypedResults.BadRequest("Failed to generate random user.");
-        }
-
 
         var user = new UserModel
         {
@@ -98,10 +82,10 @@ public class AuthenticationModule : CarterModule
             Password = userService.GeneratePasswordHash(request.Password),
             CreatedAt = DateTime.UtcNow,
             Status = 0,
-            ProfilePicture = randomProfilePicture,
-            StatusMessage = $"My name is {randomName}!",
+            ProfilePicture = "",
+            StatusMessage = $"My name is {request.Username}!",
             Biography =
-                $"This is my very long biography. I am {randomName}.\n I am a new user.\n I am a very cool person."
+                $"This is my very long biography. I am {request.Username}.\n I am a new user.\n I am a very cool person."
         };
 
         db.Users.Add(user);
