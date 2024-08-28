@@ -23,4 +23,6 @@ public class UserModel
     public List<ChatMessageModel> ChatMessages { get; set; }
     
     public List<SessionModel> Sessions { get; set; }
+    
+    public List<UploadedFile> UploadedFiles { get; set; }
 }

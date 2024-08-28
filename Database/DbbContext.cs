@@ -16,6 +16,7 @@ public class DbbContext : DbContext
     public DbSet<FriendRequestModel> FriendRequests { get; set; }
     public DbSet<ServerModel> Servers { get; set; }
     public DbSet<ConnectionModel> Connections { get; set; }
+    public DbSet<UploadedFile> UploadedFiles { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -42,6 +43,11 @@ public class DbbContext : DbContext
             .HasForeignKey(r => r.ReceiverId);
 
         modelBuilder.Entity<UserModel>()
+            .HasMany(u => u.UploadedFiles)
+            .WithOne(f => f.Uploader)
+            .HasForeignKey(f => f.UploaderId);
+
+        modelBuilder.Entity<UserModel>()
             .HasMany(u => u.Conversations)
             .WithMany(c => c.Participants)
             .UsingEntity("conversationParticipants",
@@ -66,6 +72,12 @@ public class DbbContext : DbContext
         modelBuilder.Entity<ChatMessageModel>()
             .HasIndex(m => new { m.SentAt, m.Content });
 
+        modelBuilder.Entity<UploadedFile>()
+            .HasIndex(f => f.FileName);
+
+        modelBuilder.Entity<UploadedFile>()
+            .HasIndex(f => f.Hash);
+
         modelBuilder.Entity<ConversationModel>()
             .Property(x => x.LastMessageTime)
             .HasConversion(d => d, d => DateTime.SpecifyKind(d, DateTimeKind.Utc));
@@ -80,6 +92,14 @@ public class DbbContext : DbContext
 
         modelBuilder.Entity<ServerModel>()
             .Property(x => x.LastPing)
+            .HasConversion(p => p, p => DateTime.SpecifyKind(p, DateTimeKind.Utc));
+        
+        modelBuilder.Entity<ServerModel>()
+            .Property(x => x.CreatedAt)
+            .HasConversion(p => p, p => DateTime.SpecifyKind(p, DateTimeKind.Utc));
+        
+        modelBuilder.Entity<UploadedFile>()
+            .Property(x => x.UploadedAt)
             .HasConversion(p => p, p => DateTime.SpecifyKind(p, DateTimeKind.Utc));
     }
 }
