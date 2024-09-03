@@ -43,7 +43,7 @@ public class MessagesModule : CarterModule
         app.MapGet("/conversation/{conversationId:guid}/search", SearchForMessages);
     }
 
-    private async Task<Results<Ok<MessageResponse>, NotFound>> UpdateMessageById(
+    private async Task<Results<Ok<MessageResponse>, NotFound,BadRequest<string>>> UpdateMessageById(
         DbbContext db,
         Guid messageId,
         [FromBody] UpdateChatMessageRequest request,
@@ -52,6 +52,12 @@ public class MessagesModule : CarterModule
         var message = await db.Messages.FindAsync(messageId);
         if (message == null) return TypedResults.NotFound();
 
+        
+        if (request.Content.Length > 2000)
+        {
+            return TypedResults.BadRequest("Message content is too long.");
+        }
+        
         message.Content = request.Content;
         message.Metadata = request.Metadata.ToString();
 
@@ -80,12 +86,17 @@ public class MessagesModule : CarterModule
         return TypedResults.Ok();
     }
 
-    private async Task<Ok<MessageResponse>> CreateNewMessage(
+    private async Task<Results<Ok<MessageResponse>,BadRequest<string>>> CreateNewMessage(
         DbbContext db, 
         [FromBody] SendChatMessageRequest request,
         ClaimsPrincipal claim,
         IBus bus)
     {
+        if (request.Content.Length > 2000)
+        {
+            return TypedResults.BadRequest("Message content is too long.");
+        }
+        
         var userId = Guid.Parse(claim.Claims.First().Value);
         var message = request.ToChatMessageModel();
         message.Id = Guid.NewGuid();
