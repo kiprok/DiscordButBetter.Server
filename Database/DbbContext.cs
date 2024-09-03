@@ -70,19 +70,14 @@ public class DbbContext : DbContext
             .HasIndex(u => u.Username);
 
         modelBuilder.Entity<ChatMessageModel>()
-            .HasIndex(m => new { m.SentAt, m.Content });
+            .HasIndex(m => new { m.SentAt });
 
         modelBuilder.Entity<UploadedFile>()
             .HasIndex(f => f.FileName);
 
         modelBuilder.Entity<UploadedFile>()
             .HasIndex(f => f.Hash);
-
-        modelBuilder.Entity<ChatMessageModel>()
-            .Property(m => m.Content)
-            .HasColumnType("VARCHAR")
-            .HasMaxLength(2000);
-
+        
         modelBuilder.Entity<ConversationModel>()
             .Property(x => x.LastMessageTime)
             .HasConversion(d => d, d => DateTime.SpecifyKind(d, DateTimeKind.Utc));
