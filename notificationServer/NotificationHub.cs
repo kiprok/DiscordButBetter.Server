@@ -45,7 +45,6 @@ public class NotificationHub(DbbContext db, IBus bus, ILogger<NotificationHub> l
         };
         db.Connections.Add(connection);
 
-        user.Status = 1;
         user.Online = true;
         await db.SaveChangesAsync();
 
@@ -62,22 +61,15 @@ public class NotificationHub(DbbContext db, IBus bus, ILogger<NotificationHub> l
                 await Groups.AddToGroupAsync(Context.ConnectionId, participant.Id.ToString());
         }
 
-        foreach (var friend in user.Friends) await Groups.AddToGroupAsync(Context.ConnectionId, friend.Id.ToString());
+        foreach (var friend in user.Friends) 
+            await Groups.AddToGroupAsync(Context.ConnectionId, friend.Id.ToString());
 
         foreach (var friendRequest in user.ReceivedFriendRequests)
             await Groups.AddToGroupAsync(Context.ConnectionId, friendRequest.Id.ToString());
 
         foreach (var friendRequest in user.SentFriendRequests)
             await Groups.AddToGroupAsync(Context.ConnectionId, friendRequest.Id.ToString());
-
-        var response = new UserInfoChangedMessage
-        {
-            UserId = userId,
-            Status = user.Status
-        };
-
-        //await Clients.Group(userId.ToString()).UserInfoChanged(response);
-        await bus.Publish(response);
+        
         await Clients.Caller.InitializedUser();
     }
 
