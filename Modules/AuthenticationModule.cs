@@ -67,7 +67,7 @@ public class AuthenticationModule : CarterModule
     }
 
     private async Task<Results<Ok<UserResponse>, BadRequest<string>>> RegisterNewUser(
-        [FromBody] RegistrationRequest request, DbbContext db, IUserService userService, HttpClient client)
+        [FromBody] RegistrationRequest request, IUserService userService, HttpClient client)
     {
         if (request.Username.Length < 3 || request.Username.Length > 20)
             return TypedResults.BadRequest("Username must be between 3 and 20 characters.");
