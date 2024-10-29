@@ -1,6 +1,7 @@
 ﻿using System.Security.Cryptography;
 using DiscordButBetter.Server.Database;
 using DiscordButBetter.Server.Database.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace DiscordButBetter.Server.Services;
@@ -12,6 +13,10 @@ public interface IUserService
     public string GenerateToken();
     public Task<SessionModel?> Authenticate(string username, string password, string ip, string userAgent);
     public SessionModel? Authenticate(string token);
+    
+    public Task<UserModel?> RegisterUser(string username, string password);
+    
+    public Task<UserModel?> GetUserById(Guid id);
 
     public Task<bool> Logout(string token);
 }
@@ -52,27 +57,26 @@ public class UserService(DbbContext db, IMemoryCache cache) : IUserService
             .SetSlidingExpiration(TimeSpan.FromHours(1));
 
         cache.Set(session.token, session, cacheEntryOptions);
-
+        
         db.Sessions.Add(session);
         await db.SaveChangesAsync();
-
 
         return session;
     }
 
     public SessionModel? Authenticate(string token)
     {
-        if (!cache.TryGetValue(token, out SessionModel? session))
-        {
-            session = db.Sessions.FirstOrDefault(s => s.token == token);
-            if (session == null)
-                return null;
+        if (cache.TryGetValue(token, out SessionModel? session)) return session;
+        
+        session = db.Sessions.FirstOrDefault(s => s.token == token);
+        
+        if (session == null)
+            return null;
 
-            var cacheEntryOptions = new MemoryCacheEntryOptions()
-                .SetSlidingExpiration(TimeSpan.FromHours(1));
+        var cacheEntryOptions = new MemoryCacheEntryOptions()
+            .SetSlidingExpiration(TimeSpan.FromHours(1));
 
-            cache.Set(token, session, cacheEntryOptions);
-        }
+        cache.Set(token, session, cacheEntryOptions);
 
         return session;
     }
@@ -86,10 +90,37 @@ public class UserService(DbbContext db, IMemoryCache cache) : IUserService
                 return false;
         }
 
-        db.Sessions.Remove(session);
+        await db.Sessions.Where(x => x.Id == session!.Id).ExecuteDeleteAsync();
         cache.Remove(token);
-        await db.SaveChangesAsync();
 
         return true;
+    }
+    
+    public async Task<UserModel?> RegisterUser(string username, string password)
+    {
+        if(db.Users.FirstOrDefault(x => x.Username == username) != null)
+            return null;
+        
+        var user = new UserModel
+        {
+            Username = username,
+            Password = GeneratePasswordHash(password),
+            CreatedAt = DateTime.UtcNow,
+            Status = 0,
+            ProfilePicture = "",
+            StatusMessage = $"My name is {username}!",
+            Biography =
+                $"This is my very long biography. I am {username}.\n I am a new user.\n I am a very cool person."
+        };
+
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+
+        return user;
+    }
+    
+    public async Task<UserModel?> GetUserById(Guid id)
+    {
+        return await db.Users.FirstOrDefaultAsync(x => x.Id == id);
     }
 }

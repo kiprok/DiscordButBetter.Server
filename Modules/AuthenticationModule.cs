@@ -33,13 +33,16 @@ public class AuthenticationModule : CarterModule
 
     private async Task<Results<Ok, UnauthorizedHttpResult>> LogoutUser(IUserService userService, HttpRequest request)
     {
-        if (!request.Headers.ContainsKey(AuthSchemeOptions.AuthorizationHeaderName)) return TypedResults.Unauthorized();
+        if (!request.Headers.ContainsKey(AuthSchemeOptions.AuthorizationHeaderName)) 
+            return TypedResults.Unauthorized();
 
-        var token = request.Headers[AuthSchemeOptions.AuthorizationHeaderName];
-        var session = userService.Authenticate(token);
-        if (session == null) return TypedResults.Unauthorized();
+        string token = request.Headers[AuthSchemeOptions.AuthorizationHeaderName]!;
+        SessionModel? session = userService.Authenticate(token);
+        if (session == null) 
+            return TypedResults.Unauthorized();
 
-        if (await userService.Logout(token)) return TypedResults.Ok();
+        if (await userService.Logout(token)) 
+            return TypedResults.Ok();
 
         return TypedResults.Unauthorized();
     }
@@ -71,25 +74,12 @@ public class AuthenticationModule : CarterModule
 
         if (request.Password.Length < 8 || request.Password.Length > 50)
             return TypedResults.BadRequest("Password must be between 8 and 50 characters.");
-
-        if (await db.Users.AnyAsync(u => u.Username == request.Username))
-            return TypedResults.BadRequest("Username already exists.");
-
-
-        var user = new UserModel
-        {
-            Username = request.Username,
-            Password = userService.GeneratePasswordHash(request.Password),
-            CreatedAt = DateTime.UtcNow,
-            Status = 0,
-            ProfilePicture = "",
-            StatusMessage = $"My name is {request.Username}!",
-            Biography =
-                $"This is my very long biography. I am {request.Username}.\n I am a new user.\n I am a very cool person."
-        };
-
-        db.Users.Add(user);
-        await db.SaveChangesAsync();
+        
+        var user = await userService.RegisterUser(request.Username, request.Password);
+        
+        if(user is null)
+            return TypedResults.BadRequest("Username is already taken.");
+        
 
         return TypedResults.Ok(user.ToUserResponse());
     }
