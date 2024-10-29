@@ -31,93 +31,113 @@ public class FriendsModule : CarterModule
 
         app.MapGet("/requests", GetFriendRequestsForUser);
 
-        app.MapPost("/requests", HandleFriendRequestForUser);
+        app.MapPost("/requests/Send", SendFriendRequest);
+        app.MapPost("/requests/Accept", AcceptFriendRequest);
+        app.MapPost("/requests/Decline", DeclineFriendRequest);
+        app.MapPost("/requests/Cancel", CancelFriendRequest);
     }
 
-    private async Task<Results<Ok<FriendRequestResponse>, Ok, NotFound, BadRequest>> HandleFriendRequestForUser(
-        [FromBody] FriendRequestRequest friendRequest, 
-        DbbContext db, 
+    private async Task<Results<Ok<FriendRequestResponse>, Ok, NotFound, BadRequest>> SendFriendRequest(
+        [FromBody] FriendRequestRequest friendRequest,
         ClaimsPrincipal claim,
+        IFriendService friendService,
         IBus bus)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
-        var targetUser = db.Users.Include(u => u.Friends).FirstOrDefault(u => u.Id == friendRequest.UserId);
-        var req = db.FriendRequests.FirstOrDefault(r => r.Id == friendRequest.RequestId);
-
-        if (targetUser == null) return TypedResults.NotFound();
-
-        switch (friendRequest.Type)
-        {
-            case RequestType.Send:
-                var request = new FriendRequestModel { SenderId = userId, ReceiverId = targetUser.Id };
-                db.FriendRequests.Add(request);
-                await db.SaveChangesAsync();
-                await bus.Publish(request.ToSendMessage());
-                return TypedResults.Ok(request.ToResponse());
-            case RequestType.Accept:
-                if (req == null) return TypedResults.NotFound();
-
-                var currentUser = db.Users.Include(u => u.Friends).First(u => u.Id == userId);
-                currentUser.Friends.Add(targetUser);
-                targetUser.Friends.Add(currentUser);
-                db.FriendRequests.Remove(req);
-                await db.SaveChangesAsync();
-                await bus.Publish(req.ToAcceptedMessage());
-                return TypedResults.Ok();
-            case RequestType.Decline:
-                if (req == null) return TypedResults.NotFound();
-                db.FriendRequests.Remove(req);
-                await db.SaveChangesAsync();
-                await bus.Publish(req.ToDeclinedMessage());
-
-                return TypedResults.Ok();
-            case RequestType.Cancel:
-                if (req == null) return TypedResults.NotFound();
-                db.FriendRequests.Remove(req);
-                await db.SaveChangesAsync();
-                await bus.Publish(req.ToCanceledMessage());
-                return TypedResults.Ok();
-            default:
-                return TypedResults.BadRequest();
-        }
+        
+        var request = await friendService.SendFriendRequest(userId, friendRequest.UserId);
+        if (request == null) 
+            return TypedResults.BadRequest();
+        
+        await bus.Publish(request.ToSendMessage());
+        return TypedResults.Ok(request.ToResponse());
+    }
+    
+    private async Task<Results<Ok<FriendRequestResponse>, Ok, NotFound, BadRequest>> AcceptFriendRequest(
+        [FromBody] FriendRequestRequest friendRequest,
+        ClaimsPrincipal claim,
+        IFriendService friendService,
+        IBus bus)
+    {
+        var userId = Guid.Parse(claim.Claims.First().Value);
+        
+        var request = await friendService.AcceptFriendRequest(userId, (Guid)friendRequest.RequestId!);
+        if (request == null) 
+            return TypedResults.BadRequest();
+        
+        await bus.Publish(request.ToAcceptedMessage());
+        return TypedResults.Ok();
+    }
+    
+    private async Task<Results<Ok<FriendRequestResponse>, Ok, NotFound, BadRequest>> DeclineFriendRequest(
+        [FromBody] FriendRequestRequest friendRequest,
+        ClaimsPrincipal claim,
+        IFriendService friendService,
+        IBus bus)
+    {
+        var userId = Guid.Parse(claim.Claims.First().Value);
+        var request = await friendService.DeclineFriendRequest(userId, (Guid)friendRequest.RequestId!);
+        if (request == null) 
+            return TypedResults.BadRequest();
+        
+        await bus.Publish(request.ToDeclinedMessage());
+        
+        return TypedResults.Ok();
+    }
+    
+    private async Task<Results<Ok<FriendRequestResponse>, Ok, NotFound, BadRequest>> CancelFriendRequest(
+        [FromBody] FriendRequestRequest friendRequest,
+        ClaimsPrincipal claim,
+        IFriendService friendService,
+        IBus bus)
+    {
+        var userId = Guid.Parse(claim.Claims.First().Value);
+        
+        var request = await friendService.CancelFriendRequest(userId, (Guid)friendRequest.RequestId!);
+        if (request == null) 
+            return TypedResults.BadRequest();
+        
+        await bus.Publish(request.ToCanceledMessage());
+        
+        return TypedResults.Ok();
     }
 
-    private Ok<List<FriendRequestResponse>> GetFriendRequestsForUser(DbbContext db, ClaimsPrincipal claim)
+    private async Task<Results<Ok<List<FriendRequestResponse>>,NotFound>> GetFriendRequestsForUser(
+        IFriendService friendService, 
+        ClaimsPrincipal claim)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
 
-        var requests = db.FriendRequests.Where(r => r.ReceiverId == userId || r.SenderId == userId).ToList();
+        var requests = await friendService.GetFriendRequestsForUser(userId);
+        if (requests is null) 
+            return TypedResults.NotFound();
         return TypedResults.Ok(requests.Select(r => r.ToResponse()).ToList());
     }
 
     private async Task<Results<Ok, NotFound>> RemoveFriendForUser(
-        DbbContext db, 
+        IFriendService friendService, 
         ClaimsPrincipal claim, 
         Guid friendId,
         IBus bus)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
 
-        var user = await db.Users.Include(u => u.Friends).FirstOrDefaultAsync(u => u.Id == userId);
-        if (user == null) return TypedResults.NotFound();
-
-        var friend = await db.Users.Include(u => u.Friends).FirstOrDefaultAsync(u => u.Id == friendId);
-        if (friend == null) return TypedResults.NotFound();
+        if(!await friendService.RemoveFriendForUser(userId, friendId))
+            return TypedResults.NotFound();
         
-        user.Friends.Remove(friend);
-        friend.Friends.Remove(user);
-        await db.SaveChangesAsync();
         await bus.Publish(new FriendRemovedMessage { UserId = userId,FriendId = friendId });
         return TypedResults.Ok();
     }
 
-    private Results<Ok<List<UserResponse>>, NotFound> GetFriendsForUser(DbbContext db, ClaimsPrincipal claim)
+    private async Task<Results<Ok<List<UserResponse>>, NotFound>> GetFriendsForUser(
+        IFriendService friendService, 
+        ClaimsPrincipal claim)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
 
-        var user = db.Users.Include(u => u.Friends).FirstOrDefault(u => u.Id == userId);
-        if (user == null) return TypedResults.NotFound();
+        var friends = await friendService.GetFriendsForUser(userId);
+        if (friends is null) return TypedResults.NotFound();
 
-        return TypedResults.Ok(user.Friends.Select(f => f.ToUserResponse()).ToList());
+        return TypedResults.Ok(friends.Select(f => f.ToUserResponse()).ToList());
     }
 }

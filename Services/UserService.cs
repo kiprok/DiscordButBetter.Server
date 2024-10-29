@@ -24,6 +24,7 @@ public interface IUserService
     public Task<List<UserModel>> SearchUsersByUserName(string query, Guid ownId);
 
     public Task<bool> Logout(string token);
+    
 }
 
 public class UserService(DbbContext db, IMemoryCache cache) : IUserService
@@ -124,7 +125,8 @@ public class UserService(DbbContext db, IMemoryCache cache) : IUserService
 
         return true;
     }
-    
+
+
     public async Task<UserModel?> RegisterUser(string username, string password)
     {
         if(db.Users.FirstOrDefault(x => x.Username == username) != null)
