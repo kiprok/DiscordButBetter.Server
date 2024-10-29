@@ -1,4 +1,5 @@
 ﻿using System.Security.Cryptography;
+using DiscordButBetter.Server.Contracts.Requests;
 using DiscordButBetter.Server.Database;
 using DiscordButBetter.Server.Database.Models;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +18,10 @@ public interface IUserService
     public Task<UserModel?> RegisterUser(string username, string password);
     
     public Task<UserModel?> GetUserById(Guid id);
+    
+    public Task<bool> UpdateUser(Guid id, UpdateUserInfoRequest request);
+    
+    public Task<List<UserModel>> SearchUsersByUserName(string query, Guid ownId);
 
     public Task<bool> Logout(string token);
 }
@@ -81,6 +86,30 @@ public class UserService(DbbContext db, IMemoryCache cache) : IUserService
         return session;
     }
 
+    public async Task<bool> UpdateUser(Guid id, UpdateUserInfoRequest request)
+    {
+        var user = await GetUserById(id);
+
+        if (user == null) return false;
+        
+        if (request.Password != null) user.Password = GeneratePasswordHash(request.Password);
+        if (request.ProfilePicture != null) user.ProfilePicture = request.ProfilePicture;
+        if (request.Status != null) user.Status = request.Status.Value;
+        if (request.StatusMessage != null) user.StatusMessage = request.StatusMessage;
+        if (request.Biography != null) user.Biography = request.Biography;
+        await db.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<List<UserModel>> SearchUsersByUserName(string query, Guid ownId)
+    {
+        var loweredQuery = query.ToLower();
+        return await db.Users
+            .Where(u => u.Username.ToLower().Contains(loweredQuery) && u.Id != ownId)
+            .Take(10)
+            .ToListAsync();
+    }
+
     public async Task<bool> Logout(string token)
     {
         if (!cache.TryGetValue(token, out SessionModel? session))
@@ -121,6 +150,10 @@ public class UserService(DbbContext db, IMemoryCache cache) : IUserService
     
     public async Task<UserModel?> GetUserById(Guid id)
     {
-        return await db.Users.FirstOrDefaultAsync(x => x.Id == id);
+        return await db.Users.FindAsync(id);
     }
+    
+    
+    
+    
 }

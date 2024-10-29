@@ -32,33 +32,27 @@ public class UsersModule : CarterModule
         app.MapGet("/search", SearchUsers);
     }
 
-    private Ok<List<UserResponse>> SearchUsers(DbbContext db, [FromQuery] string query, ClaimsPrincipal claim)
+    private async Task<Ok<List<UserResponse>>> SearchUsers(
+        IUserService userService, 
+        [FromQuery] string query, 
+        ClaimsPrincipal claim)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
-
-        var loweredQuery = query.ToLower();
-        var users = db.Users.Where(u => u.Username.ToLower().Contains(loweredQuery) && u.Id != userId)
-            .Take(10)
-            .ToList();
+        var users = await userService.SearchUsersByUserName(query, userId);
+        
         return TypedResults.Ok(users.Select(u => u.ToUserResponse()).ToList());
     }
 
     private async Task<Results<Ok<UserUpdateResponse>, NotFound>> UpdateUser(
-        DbbContext db,
         ClaimsPrincipal claim,
         [FromBody] UpdateUserInfoRequest request,
         IUserService userService,
         IBus bus)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
-        var user = await db.Users.FindAsync(userId);
-        if (user == null) return TypedResults.NotFound();
-        if (request.Password != null) user.Password = userService.GeneratePasswordHash(request.Password);
-        if (request.ProfilePicture != null) user.ProfilePicture = request.ProfilePicture;
-        if (request.Status != null) user.Status = request.Status.Value;
-        if (request.StatusMessage != null) user.StatusMessage = request.StatusMessage;
-        if (request.Biography != null) user.Biography = request.Biography;
-        await db.SaveChangesAsync();
+        
+        if (!(await userService.UpdateUser(userId, request)))
+            return TypedResults.NotFound();
 
         var response = new UserUpdateResponse
         {
@@ -69,22 +63,25 @@ public class UsersModule : CarterModule
         if (request.StatusMessage != null) response.StatusMessage = request.StatusMessage;
         if (request.Biography != null) response.Biography = request.Biography;
 
+        
         await bus.Publish(response.ToUserInfoChangedMessage());
+        
         return TypedResults.Ok(response);
     }
 
-    private async Task<Results<Ok<UserResponse>, NotFound>> GetUserById(DbbContext db, Guid id)
+    private async Task<Results<Ok<UserResponse>, NotFound>> GetUserById(IUserService userService, Guid id)
     {
-        var user = await db.Users.FindAsync(id);
-        if (user == null) return TypedResults.NotFound();
+        var user = await userService.GetUserById(id);
+        if (user == null) 
+            return TypedResults.NotFound();
 
         return TypedResults.Ok(user.ToUserResponse());
     }
 
-    private Results<Ok<UserResponse>, NotFound> GetUser(DbbContext db, ClaimsPrincipal claim)
+    private async Task<Results<Ok<UserResponse>, NotFound>> GetUser(IUserService userService, ClaimsPrincipal claim)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
-        var user = db.Users.FirstOrDefault(u => u.Id == userId);
+        var user = await userService.GetUserById(userId);
         if (user == null) return TypedResults.NotFound();
 
         return TypedResults.Ok(user.ToUserResponse());
