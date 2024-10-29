@@ -3,7 +3,6 @@ using Carter;
 using DiscordButBetter.Server.Contracts.Mappers;
 using DiscordButBetter.Server.Contracts.Requests;
 using DiscordButBetter.Server.Contracts.Responses;
-using DiscordButBetter.Server.Database;
 using DiscordButBetter.Server.Services;
 using MassTransit;
 using Microsoft.AspNetCore.Http.HttpResults;
