@@ -26,6 +26,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddLogging();
 builder.Services.AddSingleton<IUserIdProvider, UserIdProvider>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IFriendService, FriendService>();
 builder.Services.AddAuthentication(AuthSchemeOptions.DefaultScheme)
     .AddScheme<AuthSchemeOptions, AuthHandler>(AuthSchemeOptions.DefaultScheme, options => { });
 builder.Services.AddAuthorization();
