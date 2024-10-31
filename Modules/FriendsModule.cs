@@ -31,10 +31,10 @@ public class FriendsModule : CarterModule
 
         app.MapGet("/requests", GetFriendRequestsForUser);
 
-        app.MapPost("/requests/Send", SendFriendRequest);
-        app.MapPost("/requests/Accept", AcceptFriendRequest);
-        app.MapPost("/requests/Decline", DeclineFriendRequest);
-        app.MapPost("/requests/Cancel", CancelFriendRequest);
+        app.MapPost("/requests/send", SendFriendRequest);
+        app.MapPost("/requests/accept", AcceptFriendRequest);
+        app.MapPost("/requests/decline", DeclineFriendRequest);
+        app.MapPost("/requests/cancel", CancelFriendRequest);
     }
 
     private async Task<Results<Ok<FriendRequestResponse>, Ok, NotFound, BadRequest>> SendFriendRequest(
