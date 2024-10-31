@@ -106,6 +106,7 @@ public class UserService(DbbContext db, IMemoryCache cache) : IUserService
     {
         var loweredQuery = query.ToLower();
         return await db.Users
+            .AsNoTracking()
             .Where(u => u.Username.ToLower().Contains(loweredQuery) && u.Id != ownId)
             .Take(10)
             .ToListAsync();

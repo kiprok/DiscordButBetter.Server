@@ -40,34 +40,20 @@ public class ConversationsModule : CarterModule
         app.MapPatch("/{conversationId:Guid}", UpdateConversationById);
     }
 
-    private async Task<Results<Ok<ConversationUpdateResponse>, NotFound>> UpdateConversationById(DbbContext db,
+    private async Task<Results<Ok<ConversationUpdateResponse>, NotFound>> UpdateConversationById(
+        IConversationService conversationService,
         Guid conversationId,
         [FromBody] UpdateConversationRequest request,
         ClaimsPrincipal claim,
         IBus bus)
     {
-        var conversation = db.Conversations
-            .Include(c => c.Participants)
-            .Include(c => c.ParticipantsVisible)
-            .FirstOrDefault(c => c.Id == conversationId);
-        if (conversation == null) return TypedResults.NotFound();
+        var userId = Guid.Parse(claim.Claims.First().Value);
 
-        if (request.ConversationName != null) conversation.ConversationName = request.ConversationName;
-        if (request.ConversationPicture != null) conversation.ConversationPicture = request.ConversationPicture;
-        if (request.ParticipantsToAdd != null)
-        {
-            conversation.Participants.AddRange(db.Users.Where(u => request.ParticipantsToAdd.Contains(u.Id)));
-            conversation.ParticipantsVisible.AddRange(db.Users.Where(u => request.ParticipantsToAdd.Contains(u.Id)));
-        }
-
-        if (request.ParticipantsToRemove != null)
-        {
-            conversation.Participants.RemoveAll(u => request.ParticipantsToRemove.Contains(u.Id));
-            conversation.ParticipantsVisible.RemoveAll(u => request.ParticipantsToRemove.Contains(u.Id));
-        }
-
-        await db.SaveChangesAsync();
-
+        var conversation = await conversationService.UpdateConversationById(userId, conversationId, request);
+        
+        if (conversation is null) 
+            return TypedResults.NotFound();
+        
         await bus.Publish(
             conversation.ToChangedConversationMessage(request.ParticipantsToAdd, request.ParticipantsToRemove));
 
@@ -75,46 +61,17 @@ public class ConversationsModule : CarterModule
     }
 
     private async Task<Results<Ok, NotFound>> DeleteConversationById(
-        DbbContext db,
+        IConversationService conversationService,
         Guid conversationId,
         ClaimsPrincipal claim,
         IBus bus)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
 
-        var user = db.Users
-            .Include(u => u.VisibleConversations)
-            .FirstOrDefault(u => u.Id == userId);
+        var conversation = await conversationService.DeleteConversationById(userId, conversationId);
 
-        var conversation = db.Conversations
-            .Include(c => c.Participants)
-            .FirstOrDefault(c => c.Id == conversationId);
-
-        if (conversation == null || user == null) return TypedResults.NotFound();
-
-        if (conversation.Participants.FirstOrDefault(u => u.Id == userId) == null) return TypedResults.NotFound();
-
-        if (conversation.ConversationType == 0)
-        {
-            user.VisibleConversations.Remove(conversation);
-            await db.SaveChangesAsync();
-            return TypedResults.Ok();
-        }
-
-        conversation.Participants.Remove(user);
-        if (conversation.Participants.Count == 1)
-        {
-            db.Conversations.Remove(conversation);
-            await db.SaveChangesAsync();
-            return TypedResults.Ok();
-        }
-
-        if(conversation.OwnerId == userId)
-        {
-            conversation.OwnerId = conversation.Participants.First().Id;
-        }
-
-        await db.SaveChangesAsync();
+        if (conversation is null)
+            return TypedResults.NotFound();
 
         var message = new ChangedConversationMessage
         {
@@ -128,8 +85,8 @@ public class ConversationsModule : CarterModule
         return TypedResults.Ok();
     }
 
-    private async Task<Ok<ConversationResponse>> CreateNewConversation(
-        DbbContext db,
+    private async Task<Results<Ok<ConversationResponse>,BadRequest>> CreateNewConversation(
+        IConversationService conversationService,
         [FromBody] CreateConversationRequest request,
         ClaimsPrincipal claim,
         IBus bus)
@@ -137,102 +94,69 @@ public class ConversationsModule : CarterModule
         var userId = Guid.Parse(claim.Claims.First().Value);
         if (request.ConversationType == 0)
         {
-            var dm = db.Conversations
-                .Include(c => c.Participants)
-                .Include(c => c.ParticipantsVisible)
-                .FirstOrDefault(c =>
-                    c.Participants.FirstOrDefault(u => u.Id == userId) != null &&
-                    c.Participants.FirstOrDefault(u => u.Id == request.Participants[0]) != null);
+            var dm = await conversationService.GetPrivateConversation(userId, request.Participants.First());
 
-            if (dm != null)
+            if (dm is not null)
             {
-                dm.ParticipantsVisible.Add(db.Users.FirstOrDefault(u => u.Id == userId)!);
-                await db.SaveChangesAsync();
-                return TypedResults.Ok(dm.ToConversationResponse());
+                if(await conversationService.AddUserToVisibleConversation(userId, dm.Id))
+                    return TypedResults.Ok(dm.ToConversationResponse());
+                return TypedResults.BadRequest();
             }
         }
 
-        var participants = db.Users.Where(u => request.Participants.Contains(u.Id)).ToList();
-        participants.Add(db.Users.FirstOrDefault(u => u.Id == userId)!);
+        var conversation = await conversationService.CreateNewConversation(userId, request);
 
-        var conversation = new ConversationModel
-        {
-            Id = Guid.NewGuid(),
-            OwnerId = userId,
-            ConversationName = request.ConversationName,
-            ConversationType = request.ConversationType,
-            ConversationPicture = "",
-            Participants = participants,
-            ParticipantsVisible = participants
-        };
-
-        db.Conversations.Add(conversation);
-        await db.SaveChangesAsync();
-
+        if (conversation is null) 
+            return TypedResults.BadRequest();
+        
         var response = conversation.ToConversationResponse();
         await bus.Publish(conversation.ToNewConversationMessage());
 
         return TypedResults.Ok(response);
     }
 
-    private async Task<Results<Ok<ConversationResponse>, NotFound>> GetConversationById(DbbContext db,
+    private async Task<Results<Ok<ConversationResponse>, NotFound>> GetConversationById(
+        IConversationService conversationService,
         Guid conversationId)
     {
-        var conversation = await db.Conversations
-            .Include(c => c.Participants)
-            .FirstOrDefaultAsync(c => c.Id == conversationId);
+        var conversation = await conversationService.GetConversationById(conversationId);
         if (conversation == null) return TypedResults.NotFound();
 
         return TypedResults.Ok(conversation.ToConversationResponse());
     }
 
-    private async Task<Results<Ok, NotFound>> DeleteVisibleConversationById(DbbContext db, Guid conversationId,
+    private async Task<Results<Ok, NotFound>> DeleteVisibleConversationById(
+        IConversationService conversationService,
+        Guid conversationId,
         ClaimsPrincipal claim)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
-        var user = db.Users
-            .Include(u => u.VisibleConversations)
-            .ThenInclude(c => c.Participants)
-            .FirstOrDefault(u => u.Id == userId);
-        if (user == null) return TypedResults.NotFound();
-
-        var conversation = user.VisibleConversations.FirstOrDefault(c => c.Id == conversationId);
-        if (conversation == null) return TypedResults.NotFound();
-
-        if (conversation.Participants.FirstOrDefault(u => u.Id == userId) == null)
-            return TypedResults.NotFound();
-
-        user.VisibleConversations.Remove(conversation);
-        await db.SaveChangesAsync();
-        return TypedResults.Ok();
+        if (await conversationService.DeleteVisibleConversationById(userId, conversationId)) 
+            return TypedResults.Ok();
+        return TypedResults.NotFound();
     }
 
-    private Results<Ok<List<Guid>>, NotFound> GetVisibleConversationsForUser(DbbContext db, ClaimsPrincipal claim)
+    private async Task<Results<Ok<List<Guid>>, NotFound>> GetVisibleConversationsForUser(
+        IConversationService conversationService, 
+        ClaimsPrincipal claim)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
 
-        var conversations = db.Users
-            .Include(userModel => userModel.VisibleConversations)
-            .FirstOrDefault(u => u.Id == userId)
-            ?.VisibleConversations.ToList();
+        var conversations = await conversationService.GetVisibleConversationsForUser(userId);
 
-        if (conversations == null) return TypedResults.NotFound();
+        if (conversations is null) return TypedResults.NotFound();
 
         return TypedResults.Ok(conversations.Select(c => c.Id).ToList());
     }
 
-    private Results<Ok<List<ConversationResponse>>, NotFound> GetConversationsForUser(DbbContext db,
+    private async Task<Results<Ok<List<ConversationResponse>>, NotFound>> GetConversationsForUser(
+        IConversationService conversationService,
         ClaimsPrincipal claim)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
-        var conversations = db.Users
-            .AsSplitQuery()
-            .Include(u => u.Conversations)
-            .ThenInclude(c => c.Participants)
-            .FirstOrDefault(u => u.Id == userId)
-            ?.Conversations;
+        var conversations = await conversationService.GetConversationsForUser(userId);
 
-        if (conversations == null) return TypedResults.NotFound();
+        if (conversations is null) return TypedResults.NotFound();
 
         return TypedResults.Ok(conversations.Select(c => c.ToConversationResponse()).ToList());
     }

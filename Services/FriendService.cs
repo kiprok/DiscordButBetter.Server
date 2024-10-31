@@ -26,6 +26,7 @@ public class FriendService(DbbContext db) : IFriendService
     public async Task<List<UserModel>?> GetFriendsForUser(Guid userId)
     {
         return await db.Users
+            .AsNoTracking()
             .Include(u => u.Friends)
             .Where(u => u.Id == userId)
             .SelectMany(u => u.Friends)
@@ -49,6 +50,7 @@ public class FriendService(DbbContext db) : IFriendService
     public async Task<List<FriendRequestModel>?> GetFriendRequestsForUser(Guid userId)
     {
         return await db.FriendRequests
+            .AsNoTracking()
             .Where(r => r.ReceiverId == userId || r.SenderId == userId)
             .ToListAsync();
     }
