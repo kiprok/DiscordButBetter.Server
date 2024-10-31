@@ -23,19 +23,34 @@ public interface IFriendService
 
 public class FriendService(DbbContext db) : IFriendService
 {
-    public Task<List<UserModel>?> GetFriendsForUser(Guid userId)
+    public async Task<List<UserModel>?> GetFriendsForUser(Guid userId)
     {
-        throw new NotImplementedException();
+        return await db.Users
+            .Include(u => u.Friends)
+            .Where(u => u.Id == userId)
+            .SelectMany(u => u.Friends)
+            .ToListAsync();
     }
 
-    public Task<bool> RemoveFriendForUser(Guid userId, Guid friendId)
+    public async Task<bool> RemoveFriendForUser(Guid userId, Guid friendId)
     {
-        throw new NotImplementedException();
+        var user = await db.Users.Include(u => u.Friends).FirstOrDefaultAsync(u => u.Id == userId);
+        var friend = await db.Users.Include(u => u.Friends).FirstOrDefaultAsync(u => u.Id == friendId);
+        
+        if(user is null || friend is null) return false;
+        
+        user.Friends.Remove(friend);
+        friend.Friends.Remove(user);
+        await db.SaveChangesAsync();
+        
+        return true;
     }
 
-    public Task<List<FriendRequestModel>?> GetFriendRequestsForUser(Guid userId)
+    public async Task<List<FriendRequestModel>?> GetFriendRequestsForUser(Guid userId)
     {
-        throw new NotImplementedException();
+        return await db.FriendRequests
+            .Where(r => r.ReceiverId == userId || r.SenderId == userId)
+            .ToListAsync();
     }
 
     public async Task<FriendRequestModel?> SendFriendRequest(Guid userId, Guid targetId)
