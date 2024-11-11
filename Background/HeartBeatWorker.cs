@@ -3,19 +3,20 @@ using DiscordButBetter.Server.Contracts.Responses;
 using DiscordButBetter.Server.Database;
 using DiscordButBetter.Server.Database.Models;
 using DiscordButBetter.Server.Services;
+using DiscordButBetter.Server.Utilities;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
 
 namespace DiscordButBetter.Server.Background;
 
-public class HeartBeatService(
-    ILogger<HeartBeatService> logger,
+public class HeartBeatWorker(
+    ILogger<HeartBeatWorker> logger,
     IDbContextFactory<DbbContext> dbContextFactory,
+    IConfiguration configuration,
     IServiceScopeFactory serviceScopeFactory)
     : IHostedService
 {
-    public static Guid ServiceId { get; } = Guid.NewGuid();
     public const int Interval = 5;
     private readonly PeriodicTimer _timer = new(TimeSpan.FromMinutes(Interval));
     private CancellationToken _cancellationToken;
@@ -28,7 +29,7 @@ public class HeartBeatService(
         await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var server = new ServerModel
         {
-            Id = ServiceId,
+            Id = AppSettings.ServiceId,
             LastPing = DateTime.UtcNow
         };
 
@@ -52,7 +53,7 @@ public class HeartBeatService(
 
             while (await _timer.WaitForNextTickAsync(_cancellationToken))
             {
-                var server = await db.Servers.FindAsync(ServiceId);
+                var server = await db.Servers.FindAsync(AppSettings.ServiceId);
                 server!.LastPing = DateTime.UtcNow;
                 await db.SaveChangesAsync(_cancellationToken);
 
@@ -76,7 +77,7 @@ public class HeartBeatService(
         await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
         var server = await db.Servers
             .Include(s => s.Connections)
-            .FirstOrDefaultAsync(s => s.Id == ServiceId, cancellationToken);
+            .FirstOrDefaultAsync(s => s.Id == AppSettings.ServiceId, cancellationToken);
         if (server is null)
             return;
 

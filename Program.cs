@@ -18,6 +18,8 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+AppSettings.Initialize(builder.Configuration["SERVICE_ID"]);
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCarter();
@@ -43,7 +45,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services.AddMassTransit(x =>
 {
     x.ConfigureAllConsumers();
-    
+
     x.UsingRabbitMq((context, cfg) =>
     {
         cfg.Host(builder.Configuration["RABBITMQ_HOST"], "/", h =>
@@ -81,7 +83,7 @@ var connectionString = string.Format("Server={0};Port={1};Database={2};Uid={3};P
 
 var serverVersion = ServerVersion.AutoDetect(connectionString);
 builder.Services.AddDbContextFactory<DbbContext>(options => { options.UseMySql(connectionString, serverVersion); });
-builder.Services.AddHostedService<HeartBeatService>();
+builder.Services.AddHostedService<HeartBeatWorker>();
 
 var app = builder.Build();
 
