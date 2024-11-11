@@ -16,10 +16,10 @@ public interface IConversationService
     public Task<ConversationModel?> DeleteConversationById(Guid userId, Guid conversationId);
     public Task<ConversationModel?> CreateNewConversation(Guid userId, CreateConversationRequest request);
     public Task<ConversationModel?> GetPrivateConversation(Guid userId, Guid otherUserId);
-    public Task<ConversationModel?> UpdateConversationById(Guid userId, Guid conversationId, UpdateConversationRequest request);
-    
-}
 
+    public Task<ConversationModel?> UpdateConversationById(Guid userId, Guid conversationId,
+        UpdateConversationRequest request);
+}
 
 public class ConversationService(DbbContext db) : IConversationService
 {
@@ -33,7 +33,6 @@ public class ConversationService(DbbContext db) : IConversationService
             .Where(u => u.Id == userId)
             .SelectMany(u => u.Conversations)
             .ToListAsync();
-
     }
 
     public async Task<List<ConversationModel>?> GetVisibleConversationsForUser(Guid userId)
@@ -92,7 +91,6 @@ public class ConversationService(DbbContext db) : IConversationService
 
     public async Task<ConversationModel?> DeleteConversationById(Guid userId, Guid conversationId)
     {
-        //TODO: FIX THIS
         var user = db.Users
             .Include(u => u.VisibleConversations)
             .FirstOrDefault(u => u.Id == userId);
@@ -120,10 +118,7 @@ public class ConversationService(DbbContext db) : IConversationService
             return conversation;
         }
 
-        if(conversation.OwnerId == userId)
-        {
-            conversation.OwnerId = conversation.Participants.First().Id;
-        }
+        if (conversation.OwnerId == userId) conversation.OwnerId = conversation.Participants.First().Id;
 
         await db.SaveChangesAsync();
         return conversation;
@@ -156,13 +151,14 @@ public class ConversationService(DbbContext db) : IConversationService
             .AsSplitQuery()
             .Include(c => c.Participants)
             .Include(c => c.ParticipantsVisible)
-            .FirstOrDefaultAsync( c => 
+            .FirstOrDefaultAsync(c =>
                 c.ConversationType == 0 &&
                 c.Participants.FirstOrDefault(u => u.Id == userId) != null &&
                 c.Participants.FirstOrDefault(u => u.Id == otherUserId) != null);
     }
 
-    public async Task<ConversationModel?> UpdateConversationById(Guid userId, Guid conversationId, UpdateConversationRequest request)
+    public async Task<ConversationModel?> UpdateConversationById(Guid userId, Guid conversationId,
+        UpdateConversationRequest request)
     {
         var conversation = db.Conversations
             .Include(c => c.Participants)

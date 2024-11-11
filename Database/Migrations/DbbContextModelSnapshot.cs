@@ -62,8 +62,10 @@ namespace DiscordButBetter.Server.Database.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("varchar(255)");
 
-                    b.Property<Guid>("ServerId")
-                        .HasColumnType("char(36)");
+                    b.Property<string>("ServerId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("char(36)");
@@ -130,9 +132,9 @@ namespace DiscordButBetter.Server.Database.Migrations
 
             modelBuilder.Entity("DiscordButBetter.Server.Database.Models.ServerModel", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");

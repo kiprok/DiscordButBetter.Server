@@ -41,7 +41,7 @@ public class NotificationHub(DbbContext db, IBus bus, ILogger<NotificationHub> l
         {
             Id = Context.ConnectionId,
             UserId = userId,
-            ServerId = HeartBeatService.ServiceId
+            ServerId = AppSettings.ServiceId
         };
         db.Connections.Add(connection);
 
@@ -61,7 +61,7 @@ public class NotificationHub(DbbContext db, IBus bus, ILogger<NotificationHub> l
                 await Groups.AddToGroupAsync(Context.ConnectionId, participant.Id.ToString());
         }
 
-        foreach (var friend in user.Friends) 
+        foreach (var friend in user.Friends)
             await Groups.AddToGroupAsync(Context.ConnectionId, friend.Id.ToString());
 
         foreach (var friendRequest in user.ReceivedFriendRequests)
@@ -69,7 +69,7 @@ public class NotificationHub(DbbContext db, IBus bus, ILogger<NotificationHub> l
 
         foreach (var friendRequest in user.SentFriendRequests)
             await Groups.AddToGroupAsync(Context.ConnectionId, friendRequest.Id.ToString());
-        
+
         await Clients.Caller.InitializedUser();
     }
 

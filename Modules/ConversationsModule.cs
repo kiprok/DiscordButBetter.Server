@@ -50,10 +50,10 @@ public class ConversationsModule : CarterModule
         var userId = Guid.Parse(claim.Claims.First().Value);
 
         var conversation = await conversationService.UpdateConversationById(userId, conversationId, request);
-        
-        if (conversation is null) 
+
+        if (conversation is null)
             return TypedResults.NotFound();
-        
+
         await bus.Publish(
             conversation.ToChangedConversationMessage(request.ParticipantsToAdd, request.ParticipantsToRemove));
 
@@ -73,19 +73,22 @@ public class ConversationsModule : CarterModule
         if (conversation is null)
             return TypedResults.NotFound();
 
+        if (conversation.ConversationType == 0)
+            return TypedResults.Ok();
+
         var message = new ChangedConversationMessage
         {
             ConversationId = conversationId,
             OwnerId = conversation.OwnerId != userId ? conversation.OwnerId : null,
             Participants = conversation.Participants.Select(u => u.Id).ToList(),
-            ParticipantsToRemove = new List<Guid> {userId}
+            ParticipantsToRemove = new List<Guid> { userId }
         };
 
         await bus.Publish(message);
         return TypedResults.Ok();
     }
 
-    private async Task<Results<Ok<ConversationResponse>,BadRequest>> CreateNewConversation(
+    private async Task<Results<Ok<ConversationResponse>, BadRequest>> CreateNewConversation(
         IConversationService conversationService,
         [FromBody] CreateConversationRequest request,
         ClaimsPrincipal claim,
@@ -98,7 +101,7 @@ public class ConversationsModule : CarterModule
 
             if (dm is not null)
             {
-                if(await conversationService.AddUserToVisibleConversation(userId, dm.Id))
+                if (await conversationService.AddUserToVisibleConversation(userId, dm.Id))
                     return TypedResults.Ok(dm.ToConversationResponse());
                 return TypedResults.BadRequest();
             }
@@ -106,9 +109,9 @@ public class ConversationsModule : CarterModule
 
         var conversation = await conversationService.CreateNewConversation(userId, request);
 
-        if (conversation is null) 
+        if (conversation is null)
             return TypedResults.BadRequest();
-        
+
         var response = conversation.ToConversationResponse();
         await bus.Publish(conversation.ToNewConversationMessage());
 
@@ -131,13 +134,13 @@ public class ConversationsModule : CarterModule
         ClaimsPrincipal claim)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
-        if (await conversationService.DeleteVisibleConversationById(userId, conversationId)) 
+        if (await conversationService.DeleteVisibleConversationById(userId, conversationId))
             return TypedResults.Ok();
         return TypedResults.NotFound();
     }
 
     private async Task<Results<Ok<List<Guid>>, NotFound>> GetVisibleConversationsForUser(
-        IConversationService conversationService, 
+        IConversationService conversationService,
         ClaimsPrincipal claim)
     {
         var userId = Guid.Parse(claim.Claims.First().Value);
