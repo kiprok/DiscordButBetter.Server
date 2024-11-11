@@ -102,7 +102,7 @@ public class MessagesModule : CarterModule
 
         var message = request.ToChatMessageModel();
         message.SenderId = userId;
-        var result = await messageService.CreateNewMessage(message, conversation);
+        var result = await messageService.CreateNewMessage(message);
 
         var response = result.ToMessageResponse();
 

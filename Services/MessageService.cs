@@ -10,7 +10,7 @@ public interface IMessageService
     public Task<List<ChatMessageModel>> GetMessagesFromConversation(Guid conversationId);
     public Task<List<ChatMessageModel>> GetOlderMessages(Guid conversationId, int total, DateTime messageTime);
     public Task<List<ChatMessageModel>> GetNewerMessages(Guid conversationId, int total, DateTime messageTime);
-    public Task<ChatMessageModel> CreateNewMessage(ChatMessageModel message, ConversationModel conversation);
+    public Task<ChatMessageModel> CreateNewMessage(ChatMessageModel message);
     public Task<bool> DeleteMessageById(Guid messageId);
     public Task<bool> UpdateMessageById(Guid messageId, string content, string metadata);
     public Task<List<ChatMessageModel>?> SearchForMessages(Guid conversationId, string query);
@@ -50,10 +50,11 @@ public class MessageService(DbbContext db) : IMessageService
             .ToListAsync();
     }
 
-    public async Task<ChatMessageModel> CreateNewMessage(ChatMessageModel message, ConversationModel conversation)
+    public async Task<ChatMessageModel> CreateNewMessage(ChatMessageModel message)
     {
         db.Messages.Add(message);
-        conversation.LastMessageTime = message.SentAt;
+        var conversation = await db.Conversations.FindAsync(message.ConversationId);
+        conversation!.LastMessageTime = message.SentAt;
         await db.SaveChangesAsync();
         return message;
     }
