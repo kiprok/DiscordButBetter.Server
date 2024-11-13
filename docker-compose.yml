@@ -4,5 +4,17 @@
       context: ../
       dockerfile: ./DiscordButBetter.Server/Dockerfile
     ports:
-        - "8080:8080"
+      - "8080:8080"
     image: discordbutbetter
+    environment:
+      DB_HOST:
+      DB_PORT:
+      DB_NAME:
+      DB_USER:
+      DB_PASS:
+      AWS_ACCESS_KEY:
+      AWS_SECRET_KEY:
+      RABBITMQ_HOST:
+      RABBITMQ_USER:
+      RABBITMQ_PASS:
+      SERVICE_ID: 
