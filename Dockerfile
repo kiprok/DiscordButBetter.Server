@@ -1,4 +1,4 @@
-﻿FROM mcr.microsoft.com/dotnet/sdk:8.0 AS backend
+﻿FROM mcr.microsoft.com/dotnet/sdk:9.0 AS backend
 WORKDIR /src
 COPY ["DiscordButBetter.Server/DiscordButBetter.Server.csproj", "./"]
 RUN dotnet restore "DiscordButBetter.Server.csproj"
@@ -13,7 +13,7 @@ RUN npm install
 COPY ["DiscordButBetter.Client/", "./"]
 RUN npm run build
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
+FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
 COPY --from=backend /app/publish .
 COPY --from=frontend /src/dist ./wwwroot
