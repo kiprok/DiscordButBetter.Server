@@ -3,7 +3,7 @@
 public class ConcurrentList<T>
 {
     private readonly List<T> _list = new();
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
 
 
     public ConcurrentList(params T[] items)
