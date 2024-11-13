@@ -43,22 +43,28 @@ public class MessagesModule : CarterModule
         app.MapGet("/conversation/{conversationId:guid}/search", SearchForMessages);
     }
 
-    private async Task<Results<Ok<MessageResponse>, NotFound, BadRequest<string>>> UpdateMessageById(
-        DbbContext db,
+    private async Task<Results<Ok<MessageResponse>, NotFound, UnauthorizedHttpResult, BadRequest>> UpdateMessageById(
+        IMessageService messageService,
         Guid messageId,
+        ClaimsPrincipal claim,
         [FromBody] UpdateChatMessageRequest request,
         IBus bus)
     {
-        var message = await db.Messages.FindAsync(messageId);
-        if (message == null) return TypedResults.NotFound();
+        var userId = Guid.Parse(claim.Claims.First().Value);
+        var message = await messageService.GetMessageById(messageId);
 
-
-        if (request.Content.Length > 2000) return TypedResults.BadRequest("Message content is too long.");
+        if (message == null)
+            return TypedResults.NotFound();
+        if (message.SenderId != userId)
+            return TypedResults.Unauthorized();
+        if (request.Content.Length > 2000)
+            return TypedResults.BadRequest();
 
         message.Content = request.Content;
         message.Metadata = request.Metadata.ToString();
 
-        await db.SaveChangesAsync();
+        if (!await messageService.UpdateMessageById(message))
+            return TypedResults.BadRequest();
 
         var response = message.ToMessageResponse();
 
