@@ -67,19 +67,25 @@ public class MessagesModule : CarterModule
         return TypedResults.Ok(response);
     }
 
-    private async Task<Results<Ok, NotFound>> DeleteMessageById(
-        DbbContext db,
+    private async Task<Results<Ok, NotFound, UnauthorizedHttpResult>> DeleteMessageById(
+        IMessageService messageService,
         Guid messageId,
+        ClaimsPrincipal claim,
         IBus bus)
     {
-        var message = await db.Messages.FindAsync(messageId);
-        if (message == null) return TypedResults.NotFound();
+        var userId = Guid.Parse(claim.Claims.First().Value);
 
-        db.Messages.Remove(message);
-        await db.SaveChangesAsync();
+        var message = await messageService.GetMessageById(messageId);
+
+        if (message == null)
+            return TypedResults.NotFound();
+        if (message.SenderId != userId)
+            return TypedResults.Unauthorized();
+
+        if (!await messageService.DeleteMessageById(messageId))
+            return TypedResults.NotFound();
 
         await bus.Publish(message.ToDeleteChatMessageMessage());
-
         return TypedResults.Ok();
     }
 

@@ -59,9 +59,10 @@ public class MessageService(DbbContext db) : IMessageService
         return message;
     }
 
-    public Task<bool> DeleteMessageById(Guid messageId)
+    public async Task<bool> DeleteMessageById(Guid messageId)
     {
-        throw new NotImplementedException();
+        var result = await db.Messages.Where(x => x.Id == messageId).ExecuteDeleteAsync();
+        return result == 1;
     }
 
     public Task<bool> UpdateMessageById(Guid messageId, string content, string metadata)
