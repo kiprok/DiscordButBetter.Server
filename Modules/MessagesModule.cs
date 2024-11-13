@@ -236,18 +236,24 @@ public class MessagesModule : CarterModule
         return TypedResults.Ok(combinedMessages.Select(m => m.ToMessageResponse()).ToList());
     }
 
-    private Ok<MessageSearchResponse> SearchForMessages(
-        DbbContext db,
+    private async Task<Results<Ok<MessageSearchResponse>, UnauthorizedHttpResult, NotFound>> SearchForMessages(
+        IMessageService messageService,
+        IConversationService conversationService,
+        ClaimsPrincipal claim,
         Guid conversationId,
         [FromQuery] string query,
         [FromQuery] int page = 1)
     {
-        var messages = db.Messages
-            .Where(m => m.ConversationId == conversationId)
-            .Where(m => m.Content.Contains(query))
-            .OrderByDescending(m => m.SentAt)
-            .ToList();
+        var userId = Guid.Parse(claim.Claims.First().Value);
 
+        var conversation = await conversationService.GetConversationById(conversationId);
+
+        if (conversation == null)
+            return TypedResults.NotFound();
+        if (conversation.Participants.FirstOrDefault(x => x.Id == userId) == null)
+            return TypedResults.Unauthorized();
+
+        var messages = await messageService.SearchForMessages(conversationId, query);
 
         return TypedResults.Ok(new MessageSearchResponse
         {

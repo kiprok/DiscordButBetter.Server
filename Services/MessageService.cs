@@ -13,7 +13,7 @@ public interface IMessageService
     public Task<ChatMessageModel> CreateNewMessage(ChatMessageModel message);
     public Task<bool> DeleteMessageById(Guid messageId);
     public Task<bool> UpdateMessageById(ChatMessageModel message);
-    public Task<List<ChatMessageModel>?> SearchForMessages(Guid conversationId, string query);
+    public Task<List<ChatMessageModel>> SearchForMessages(Guid conversationId, string query);
 }
 
 public class MessageService(DbbContext db) : IMessageService
@@ -71,8 +71,12 @@ public class MessageService(DbbContext db) : IMessageService
         return await db.SaveChangesAsync() == 1;
     }
 
-    public Task<List<ChatMessageModel>?> SearchForMessages(Guid conversationId, string query)
+    public async Task<List<ChatMessageModel>> SearchForMessages(Guid conversationId, string query)
     {
-        throw new NotImplementedException();
+        return await db.Messages
+            .Where(m => m.ConversationId == conversationId)
+            .Where(m => m.Content.Contains(query))
+            .OrderByDescending(m => m.SentAt)
+            .ToListAsync();
     }
 }
