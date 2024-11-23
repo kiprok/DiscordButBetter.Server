@@ -6,7 +6,6 @@ using DiscordButBetter.Server.Services;
 using DiscordButBetter.Server.Utilities;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
-using MySqlConnector;
 
 namespace DiscordButBetter.Server.Background;
 

@@ -3,17 +3,17 @@ using System;
 using DiscordButBetter.Server.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
 namespace DiscordButBetter.Server.Database.Migrations
 {
     [DbContext(typeof(DbbContext))]
-    [Migration("20240822114611_AdddedOwnerToConvos")]
-    partial class AdddedOwnerToConvos
+    [Migration("20241123105813_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -21,32 +21,33 @@ namespace DiscordButBetter.Server.Database.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "8.0.6")
-                .HasAnnotation("Relational:MaxIdentifierLength", 64);
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("DiscordButBetter.Server.Database.Models.ChatMessageModel", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Content")
                         .IsRequired()
-                        .HasColumnType("varchar(255)");
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<Guid>("ConversationId")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Metadata")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("text");
 
                     b.Property<Guid>("SenderId")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("SentAt")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -54,7 +55,7 @@ namespace DiscordButBetter.Server.Database.Migrations
 
                     b.HasIndex("SenderId");
 
-                    b.HasIndex("SentAt", "Content");
+                    b.HasIndex("SentAt");
 
                     b.ToTable("Messages");
                 });
@@ -62,13 +63,15 @@ namespace DiscordButBetter.Server.Database.Migrations
             modelBuilder.Entity("DiscordButBetter.Server.Database.Models.ConnectionModel", b =>
                 {
                     b.Property<string>("Id")
-                        .HasColumnType("varchar(255)");
+                        .HasColumnType("text");
 
-                    b.Property<Guid>("ServerId")
-                        .HasColumnType("char(36)");
+                    b.Property<string>("ServerId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -83,24 +86,24 @@ namespace DiscordButBetter.Server.Database.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("ConversationName")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("text");
 
                     b.Property<string>("ConversationPicture")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("text");
 
                     b.Property<byte>("ConversationType")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("smallint");
 
                     b.Property<DateTime>("LastMessageTime")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("OwnerId")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -113,13 +116,13 @@ namespace DiscordButBetter.Server.Database.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("ReceiverId")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("SenderId")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -132,12 +135,15 @@ namespace DiscordButBetter.Server.Database.Migrations
 
             modelBuilder.Entity("DiscordButBetter.Server.Database.Models.ServerModel", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("LastPing")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -148,22 +154,22 @@ namespace DiscordButBetter.Server.Database.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("IpAddress")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("text");
 
                     b.Property<string>("UserAgent")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("text");
 
                     b.Property<string>("token")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("text");
 
                     b.Property<Guid>("userId")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -172,40 +178,82 @@ namespace DiscordButBetter.Server.Database.Migrations
                     b.ToTable("Sessions");
                 });
 
+            modelBuilder.Entity("DiscordButBetter.Server.Database.Models.UploadedFile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("FileSize")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FileType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Hash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UploaderId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FileName");
+
+                    b.HasIndex("Hash");
+
+                    b.HasIndex("UploaderId");
+
+                    b.ToTable("UploadedFiles");
+                });
+
             modelBuilder.Entity("DiscordButBetter.Server.Database.Models.UserModel", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Biography")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("Online")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Password")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("text");
 
                     b.Property<string>("ProfilePicture")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("text");
 
                     b.Property<byte>("Status")
-                        .HasColumnType("tinyint unsigned");
+                        .HasColumnType("smallint");
 
                     b.Property<string>("StatusMessage")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("text");
 
                     b.Property<string>("Username")
                         .IsRequired()
-                        .HasColumnType("varchar(255)");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -217,10 +265,10 @@ namespace DiscordButBetter.Server.Database.Migrations
             modelBuilder.Entity("Friends", b =>
                 {
                     b.Property<Guid>("FriendId")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.HasKey("FriendId", "UserId");
 
@@ -232,10 +280,10 @@ namespace DiscordButBetter.Server.Database.Migrations
             modelBuilder.Entity("conversationParticipants", b =>
                 {
                     b.Property<Guid>("ConversationId")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.HasKey("ConversationId", "UserId");
 
@@ -247,10 +295,10 @@ namespace DiscordButBetter.Server.Database.Migrations
             modelBuilder.Entity("conversationParticipantsVisible", b =>
                 {
                     b.Property<Guid>("ConversationId")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("UserId")
-                        .HasColumnType("char(36)");
+                        .HasColumnType("uuid");
 
                     b.HasKey("ConversationId", "UserId");
 
@@ -336,6 +384,17 @@ namespace DiscordButBetter.Server.Database.Migrations
                     b.Navigation("user");
                 });
 
+            modelBuilder.Entity("DiscordButBetter.Server.Database.Models.UploadedFile", b =>
+                {
+                    b.HasOne("DiscordButBetter.Server.Database.Models.UserModel", "Uploader")
+                        .WithMany("UploadedFiles")
+                        .HasForeignKey("UploaderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Uploader");
+                });
+
             modelBuilder.Entity("Friends", b =>
                 {
                     b.HasOne("DiscordButBetter.Server.Database.Models.UserModel", null)
@@ -402,6 +461,8 @@ namespace DiscordButBetter.Server.Database.Migrations
                     b.Navigation("SentFriendRequests");
 
                     b.Navigation("Sessions");
+
+                    b.Navigation("UploadedFiles");
                 });
 #pragma warning restore 612, 618
         }

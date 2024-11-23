@@ -77,15 +77,16 @@ builder.Services.AddAWSService<IAmazonS3>(new AWSOptions
 
 AWSConfigsS3.UseSignatureVersion4 = true;
 
-var connectionString = string.Format("Server={0};Port={1};Database={2};Uid={3};Pwd={4};",
+var connectionString = string.Format("Host={0};Port={1};Database={2};Username={3};Password={4};",
     builder.Configuration["DB_HOST"],
     builder.Configuration["DB_PORT"],
     builder.Configuration["DB_NAME"],
     builder.Configuration["DB_USER"],
     builder.Configuration["DB_PASS"]);
+Console.WriteLine(connectionString);
 
-var serverVersion = ServerVersion.AutoDetect(connectionString);
-builder.Services.AddDbContextFactory<DbbContext>(options => { options.UseMySql(connectionString, serverVersion); });
+//var serverVersion = ServerVersion.AutoDetect(connectionString);
+builder.Services.AddDbContextFactory<DbbContext>(options => { options.UseNpgsql(connectionString); });
 builder.Services.AddHostedService<HeartBeatWorker>();
 
 var app = builder.Build();
